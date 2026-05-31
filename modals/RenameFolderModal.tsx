@@ -1,10 +1,5 @@
-/*
- * GifFolders – RenameFolderModal.tsx
- */
-
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot } from "@utils/modal";
 import { Button, React, Text, TextInput, useState } from "@webpack/common";
-
 import { FolderManager } from "../FolderManager";
 import { GifFolder } from "..";
 
