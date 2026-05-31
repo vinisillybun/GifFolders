@@ -1,21 +1,3 @@
-/*
- * Vencord, a modification for Discord's desktop app
- * Copyright (c) 2024 Vendicated and contributors
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
-*/
-
 import { addContextMenuPatch, findGroupChildrenByChildId, NavContextMenuPatchCallback, removeContextMenuPatch } from "@api/ContextMenu";
 import { DataStore } from "@api/index";
 import ErrorBoundary from "@components/ErrorBoundary";
@@ -117,17 +99,7 @@ function openFolderBrowser() {
         >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <span style={{ fontWeight: 700, fontSize: 16, color: "var(--header-primary)" }}>📂 GIF Folders</span>
-                <button
-                    onClick={props.onClose}
-                    style={{
-                        background: "none",
-                        border: "none",
-                        color: "var(--text-muted)",
-                        cursor: "pointer",
-                        fontSize: 18,
-                        lineHeight: 1,
-                    }}
-                >✕</button>
+                <button onClick={props.onClose} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 18 }}>✕</button>
             </div>
             <div style={{ flex: 1, overflowY: "auto" }}>
                 <ErrorBoundary>
@@ -142,54 +114,46 @@ export default definePlugin({
     name: "GifFolders",
     description: "Organize your GIFs into unlimited custom folders, no Discord favorites limit! :3",
     authors: [{ name: "viniiiiiiiiiiiiiiii", id: 530056363124981772n }],
+
     patches: [
         {
-            find: '"13/7kX"',
+            find: "getFavoriteGIFs",
             replacement: {
-                match: /(\(0,\i\.jsxs\)\(\i\.A,\{align:\i\.A\.Align\.CENTER,children:\[)(\i,this\.renderHeaderContent\(\))/,
-                replace: "$1$2,$self.renderFolderButton()",
-            },
-        },
+                match: /(?<=children:\s*\[)(?=.{50,300}Favorites)/,
+                replace: "$self.renderFavoritesTile(),"
+            }
+        }
     ],
+
     start() {
         addContextMenuPatch("message", messageContextMenuPatch);
     },
     stop() {
         removeContextMenuPatch("message", messageContextMenuPatch);
     },
-    renderFolderButton() {
+
+    renderFavoritesTile() {
         return (
-            <button
+            <div
                 onClick={openFolderBrowser}
-                title="GIF Folders"
                 style={{
-                    background: "none",
-                    border: "none",
+                    background: "var(--brand-experiment)",
+                    borderRadius: 8,
+                    padding: "12px 16px",
                     cursor: "pointer",
-                    color: "var(--interactive-normal)",
-                    fontSize: 18,
-                    padding: "0 4px",
                     display: "flex",
                     alignItems: "center",
-                    borderRadius: 4,
-                    flexShrink: 0,
-                }}
-                onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
-                    (e.currentTarget as HTMLButtonElement).style.color = "var(--interactive-hover)";
-                }}
-                onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
-                    (e.currentTarget as HTMLButtonElement).style.color = "var(--interactive-normal)";
+                    justifyContent: "center",
+                    fontSize: 16,
+                    fontWeight: 600,
+                    color: "white",
+                    height: 90,
+                    position: "relative",
+                    overflow: "hidden",
                 }}
             >
-                📂
-            </button>
+                📂 GIF Folders
+            </div>
         );
-    },
-    renderFoldersTab() {
-        return (
-            <ErrorBoundary>
-                <GifFoldersUI />
-            </ErrorBoundary>
-        );
-    },
+    }
 });
