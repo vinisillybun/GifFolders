@@ -1,11 +1,5 @@
-/*
- * GifFolders – SaveToFolderModal.tsx
- * Modal for picking (or creating) a folder to save a GIF into.
- */
-
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot } from "@utils/modal";
 import { Button, React, Text, useState, useEffect } from "@webpack/common";
-
 import { FolderManager } from "../FolderManager";
 import { GifFolder, GifItem, loadFolders } from "..";
 
@@ -34,7 +28,6 @@ export function SaveToFolderModal({ modalProps, gif }: Props) {
     const createAndSave = async () => {
         const id = await FolderManager.openCreateModal();
         if (id) {
-            // Reload folders then save
             const updated = await loadFolders();
             setFolders(Object.values(updated));
             await saveToFolder(id);
@@ -49,7 +42,6 @@ export function SaveToFolderModal({ modalProps, gif }: Props) {
             </ModalHeader>
             <ModalContent>
                 <div style={{ padding: "12px 0" }}>
-                    {/* GIF preview */}
                     <img
                         src={gif.src}
                         alt=""
@@ -62,7 +54,6 @@ export function SaveToFolderModal({ modalProps, gif }: Props) {
                             background: "var(--background-secondary)",
                         }}
                     />
-
                     {folders.length === 0 ? (
                         <Text
                             variant="text-sm/normal"
