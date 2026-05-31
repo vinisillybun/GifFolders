@@ -9,24 +9,20 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-
 import { addContextMenuPatch, findGroupChildrenByChildId, NavContextMenuPatchCallback, removeContextMenuPatch } from "@api/ContextMenu";
 import { DataStore } from "@api/index";
 import ErrorBoundary from "@components/ErrorBoundary";
 import definePlugin from "@utils/types";
 import { Menu, React } from "@webpack/common";
 import { openModal } from "@utils/modal";
-
 import { FolderManager } from "./FolderManager";
 import { GifFoldersUI } from "./GifFoldersUI";
-
-// ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface GifItem {
     url: string;
@@ -35,7 +31,6 @@ export interface GifItem {
     height: number;
     addedAt: number;
 }
-
 export interface GifFolder {
     id: string;
     name: string;
@@ -43,22 +38,15 @@ export interface GifFolder {
     gifs: GifItem[];
     createdAt: number;
 }
-
 export type FolderStore = Record<string, GifFolder>;
 
-// ─── DataStore ────────────────────────────────────────────────────────────────
-
 const STORE_KEY = "GifFolders_v1";
-
 export async function loadFolders(): Promise<FolderStore> {
     return (await DataStore.get<FolderStore>(STORE_KEY)) ?? {};
 }
-
 export async function saveFolders(folders: FolderStore): Promise<void> {
     await DataStore.set(STORE_KEY, folders);
 }
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function isGifUrl(url: string): boolean {
     if (!url) return false;
@@ -70,7 +58,6 @@ function isGifUrl(url: string): boolean {
         url.includes("cdn.discordapp.com")
     );
 }
-
 function getGifUrlFromMessage(message: any): string | null {
     if (message?.embeds?.length > 0) {
         for (const embed of message.embeds) {
@@ -89,17 +76,14 @@ function getGifUrlFromMessage(message: any): string | null {
     return null;
 }
 
-// ─── Message context menu patch ───────────────────────────────────────────────
-
 const messageContextMenuPatch: NavContextMenuPatchCallback = (children, props) => {
     const gifUrl = getGifUrlFromMessage(props?.message);
     if (!gifUrl) return;
-
     const saveImageGroup = findGroupChildrenByChildId("save-image", children);
     const menuItem = (
         <Menu.MenuItem
             id="gif-folders-save-chat"
-            label="Save to GIF Folder…"
+            label="Save to GIF Folder"
             action={() => FolderManager.openSaveModal({
                 url: gifUrl,
                 src: gifUrl,
@@ -108,7 +92,6 @@ const messageContextMenuPatch: NavContextMenuPatchCallback = (children, props) =
             })}
         />
     );
-
     if (saveImageGroup) {
         const saveImageIndex = saveImageGroup.findIndex((c: any) => c?.props?.id === "save-image");
         saveImageGroup.splice(saveImageIndex + 1, 0, menuItem);
@@ -116,8 +99,6 @@ const messageContextMenuPatch: NavContextMenuPatchCallback = (children, props) =
         children.push(<Menu.MenuSeparator />, menuItem);
     }
 };
-
-// ─── Folder browser modal ─────────────────────────────────────────────────────
 
 function openFolderBrowser() {
     openModal(props => (
@@ -156,35 +137,25 @@ function openFolderBrowser() {
     ));
 }
 
-// ─── Plugin ───────────────────────────────────────────────────────────────────
-
 export default definePlugin({
     name: "GifFolders",
-    description: "Organize your GIFs into unlimited custom folders — no Discord favorites limit!",
+    description: "Organize your GIFs into unlimited custom folders, no Discord favorites limit! :3",
     authors: [{ name: "viniiiiiiiiiiiiiiii", id: 530056363124981772n }],
-
     patches: [
         {
-            // Module 622142 — GIF picker main component (class z).
-            // The renderHeader method renders (0,s.jsxs)(p.A,{align:p.A.Align.CENTER,...})
-            // We inject our 📂 folder button after the back arrow button inside the header.
             find: '"13/7kX"',
             replacement: {
-                // Match the flex row (p.A) that wraps the back button + search bar
                 match: /(\(0,\i\.jsxs\)\(\i\.A,\{align:\i\.A\.Align\.CENTER,children:\[)(\i,this\.renderHeaderContent\(\))/,
                 replace: "$1$2,$self.renderFolderButton()",
             },
         },
     ],
-
     start() {
         addContextMenuPatch("message", messageContextMenuPatch);
     },
-
     stop() {
         removeContextMenuPatch("message", messageContextMenuPatch);
     },
-
     renderFolderButton() {
         return (
             <button
@@ -213,7 +184,6 @@ export default definePlugin({
             </button>
         );
     },
-
     renderFoldersTab() {
         return (
             <ErrorBoundary>
