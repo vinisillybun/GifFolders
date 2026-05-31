@@ -1,19 +1,11 @@
-/*
- * GifFolders – GifFoldersUI.tsx
- * The main folder browser that replaces / augments the GIF picker's favorites tab.
- */
-
 import { classes } from "@utils/misc";
 import { openModal } from "@utils/modal";
 import { useAwaiter } from "@utils/react";
 import { Button, Menu, React, Text, TextInput, Tooltip, useState, useEffect, useCallback } from "@webpack/common";
-
 import { FolderManager } from "./FolderManager";
 import { GifFolder, GifItem, loadFolders, saveFolders } from ".";
 import { CreateFolderModal } from "./modals/CreateFolderModal";
 import { RenameFolderModal } from "./modals/RenameFolderModal";
-
-// ─── Sub-component: a single GIF thumbnail ────────────────────────────────────
 
 function GifTile({
     gif,
@@ -27,7 +19,6 @@ function GifTile({
     onDelete: () => void;
 }) {
     const [hovered, setHovered] = useState(false);
-
     return (
         <div
             className="gif-folder-tile"
@@ -79,8 +70,6 @@ function GifTile({
         </div>
     );
 }
-
-// ─── Sub-component: folder header row ─────────────────────────────────────────
 
 function FolderHeader({
     folder,
@@ -137,8 +126,6 @@ const iconBtnStyle: React.CSSProperties = {
     opacity: 0.7,
 };
 
-// ─── Main component ───────────────────────────────────────────────────────────
-
 export function GifFoldersUI({ onGifClick }: { onGifClick?: (gif: GifItem) => void }) {
     const [folders, setFolders] = useState<Record<string, GifFolder>>({});
     const [search, setSearch] = useState("");
@@ -156,7 +143,6 @@ export function GifFoldersUI({ onGifClick }: { onGifClick?: (gif: GifItem) => vo
     const folderList = Object.values(folders);
     const selectedFolder = selectedFolderId ? folders[selectedFolderId] : null;
 
-    // Filter gifs by search
     const visibleGifs = selectedFolder
         ? selectedFolder.gifs.filter(g =>
             !search || g.url.toLowerCase().includes(search.toLowerCase())
@@ -221,7 +207,6 @@ export function GifFoldersUI({ onGifClick }: { onGifClick?: (gif: GifItem) => vo
                 await FolderManager.importFolders(text);
                 await reload();
             } catch {
-                // invalid JSON
             }
         };
         input.click();
@@ -231,8 +216,6 @@ export function GifFoldersUI({ onGifClick }: { onGifClick?: (gif: GifItem) => vo
 
     return (
         <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 8 }}>
-
-            {/* Toolbar */}
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 <Text variant="heading-sm/bold" style={{ flex: 1, color: "var(--header-primary)" }}>
                     📂 GIF Folders
@@ -269,7 +252,6 @@ export function GifFoldersUI({ onGifClick }: { onGifClick?: (gif: GifItem) => vo
                 </Tooltip>
             </div>
 
-            {/* Folder pill list */}
             {folderList.length === 0 ? (
                 <Text
                     variant="text-sm/normal"
@@ -304,7 +286,6 @@ export function GifFoldersUI({ onGifClick }: { onGifClick?: (gif: GifItem) => vo
                 </div>
             )}
 
-            {/* Folder content */}
             {selectedFolder && (
                 <div style={{ flex: 1, overflowY: "auto" }}>
                     <FolderHeader
@@ -312,14 +293,12 @@ export function GifFoldersUI({ onGifClick }: { onGifClick?: (gif: GifItem) => vo
                         onRename={() => handleRenameFolder(selectedFolder.id)}
                         onDelete={() => handleDeleteFolder(selectedFolder.id)}
                     />
-
                     <TextInput
                         placeholder="Search GIFs in this folder…"
                         value={search}
                         onChange={setSearch}
                         style={{ marginBottom: 8 }}
                     />
-
                     {visibleGifs.length === 0 ? (
                         <Text
                             variant="text-sm/normal"
