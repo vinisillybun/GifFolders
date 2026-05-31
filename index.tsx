@@ -21,6 +21,7 @@ import { DataStore } from "@api/index";
 import ErrorBoundary from "@components/ErrorBoundary";
 import definePlugin from "@utils/types";
 import { Menu, React } from "@webpack/common";
+import { openModal } from "@utils/modal";
 
 import { FolderManager } from "./FolderManager";
 import { GifFoldersUI } from "./GifFoldersUI";
@@ -116,6 +117,45 @@ const messageContextMenuPatch: NavContextMenuPatchCallback = (children, props) =
     }
 };
 
+// ─── Folder browser modal ─────────────────────────────────────────────────────
+
+function openFolderBrowser() {
+    openModal(props => (
+        <div
+            style={{
+                background: "var(--background-floating)",
+                borderRadius: 8,
+                padding: 16,
+                width: 480,
+                maxHeight: 600,
+                display: "flex",
+                flexDirection: "column",
+                boxShadow: "var(--elevation-high)",
+            }}
+        >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <span style={{ fontWeight: 700, fontSize: 16, color: "var(--header-primary)" }}>📂 GIF Folders</span>
+                <button
+                    onClick={props.onClose}
+                    style={{
+                        background: "none",
+                        border: "none",
+                        color: "var(--text-muted)",
+                        cursor: "pointer",
+                        fontSize: 18,
+                        lineHeight: 1,
+                    }}
+                >✕</button>
+            </div>
+            <div style={{ flex: 1, overflowY: "auto" }}>
+                <ErrorBoundary>
+                    <GifFoldersUI />
+                </ErrorBoundary>
+            </div>
+        </div>
+    ));
+}
+
 // ─── Plugin ───────────────────────────────────────────────────────────────────
 
 export default definePlugin({
@@ -123,7 +163,19 @@ export default definePlugin({
     description: "Organize your GIFs into unlimited custom folders — no Discord favorites limit!",
     authors: [{ name: "viniiiiiiiiiiiiiiii", id: 530056363124981772n }],
 
-    patches: [],
+    patches: [
+        {
+            // Module 622142 — GIF picker main component (class z).
+            // The renderHeader method renders (0,s.jsxs)(p.A,{align:p.A.Align.CENTER,...})
+            // We inject our 📂 folder button after the back arrow button inside the header.
+            find: '"13/7kX"',
+            replacement: {
+                // Match the flex row (p.A) that wraps the back button + search bar
+                match: /(\(0,\i\.jsxs\)\(\i\.A,\{align:\i\.A\.Align\.CENTER,children:\[)(\i,this\.renderHeaderContent\(\))/,
+                replace: "$1$2,$self.renderFolderButton()",
+            },
+        },
+    ],
 
     start() {
         addContextMenuPatch("message", messageContextMenuPatch);
@@ -131,6 +183,35 @@ export default definePlugin({
 
     stop() {
         removeContextMenuPatch("message", messageContextMenuPatch);
+    },
+
+    renderFolderButton() {
+        return (
+            <button
+                onClick={openFolderBrowser}
+                title="GIF Folders"
+                style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "var(--interactive-normal)",
+                    fontSize: 18,
+                    padding: "0 4px",
+                    display: "flex",
+                    alignItems: "center",
+                    borderRadius: 4,
+                    flexShrink: 0,
+                }}
+                onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => {
+                    (e.currentTarget as HTMLButtonElement).style.color = "var(--interactive-hover)";
+                }}
+                onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => {
+                    (e.currentTarget as HTMLButtonElement).style.color = "var(--interactive-normal)";
+                }}
+            >
+                📂
+            </button>
+        );
     },
 
     renderFoldersTab() {
