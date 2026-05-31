@@ -1,5 +1,4 @@
 # GifFolders 
-A Vencord Userplugin
 
 Organize your GIFs into unlimited custom folders, stored locally in IndexedDB via Vencord's DataStore, completely bypassing Discord's built-in favorites limit.
 
