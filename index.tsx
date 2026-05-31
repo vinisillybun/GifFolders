@@ -16,10 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { addContextMenuPatch, NavContextMenuPatchCallback, removeContextMenuPatch } from "@api/ContextMenu";
+import { addContextMenuPatch, findGroupChildrenByChildId, NavContextMenuPatchCallback, removeContextMenuPatch } from "@api/ContextMenu";
 import { DataStore } from "@api/index";
 import ErrorBoundary from "@components/ErrorBoundary";
-import { findGroupChildrenByChildId } from "@api/ContextMenu";
 import definePlugin from "@utils/types";
 import { Menu, React } from "@webpack/common";
 
@@ -72,20 +71,17 @@ function isGifUrl(url: string): boolean {
 }
 
 function getGifUrlFromMessage(message: any): string | null {
-    // Check embeds first (linked GIFs)
     if (message?.embeds?.length > 0) {
         for (const embed of message.embeds) {
             const url = embed.url ?? embed.image?.url ?? embed.thumbnail?.url;
             if (url && isGifUrl(url)) return url;
         }
     }
-    // Check attachments
     if (message?.attachments?.length > 0) {
         for (const att of message.attachments) {
             if (att.content_type?.includes("gif") || isGifUrl(att.url)) return att.url;
         }
     }
-    // Check message content (plain URL)
     if (message?.content && isGifUrl(message.content.trim())) {
         return message.content.trim();
     }
@@ -98,7 +94,6 @@ const messageContextMenuPatch: NavContextMenuPatchCallback = (children, props) =
     const gifUrl = getGifUrlFromMessage(props?.message);
     if (!gifUrl) return;
 
-    // Insert below "save-image" group if it exists, otherwise just push
     const saveImageGroup = findGroupChildrenByChildId("save-image", children);
     const menuItem = (
         <Menu.MenuItem
@@ -128,17 +123,7 @@ export default definePlugin({
     description: "Organize your GIFs into unlimited custom folders — no Discord favorites limit!",
     authors: [{ name: "viniiiiiiiiiiiiiiii", id: 530056363124981772n }],
 
-    patches: [
-        {
-            // Module 285961 — GIF results list renderItem.
-            // Intercepts renderExtras on each GIF tile to add our 📁 save button.
-            find: "renderEmptyFavorites()",
-            replacement: {
-                match: /renderExtras:\(\)=>\(0,\i\.jsx\)\(\i\.\i,\{className:\i\.\i,\.\.\.(\i)\}\)/,
-                replace: "renderExtras:()=>$self.renderGifExtras($1)",
-            },
-        },
-    ],
+    patches: [],
 
     start() {
         addContextMenuPatch("message", messageContextMenuPatch);
@@ -146,44 +131,6 @@ export default definePlugin({
 
     stop() {
         removeContextMenuPatch("message", messageContextMenuPatch);
-    },
-
-    renderGifExtras(gif: any) {
-        return (
-            <ErrorBoundary noop>
-                <div
-                    style={{
-                        position: "absolute",
-                        bottom: 4,
-                        right: 4,
-                        zIndex: 10,
-                        background: "rgba(0,0,0,0.6)",
-                        borderRadius: "50%",
-                        width: 24,
-                        height: 24,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        fontSize: 13,
-                        userSelect: "none" as const,
-                    }}
-                    onClick={(e: React.MouseEvent) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        FolderManager.openSaveModal({
-                            url: gif.url,
-                            src: gif.src,
-                            width: gif.width ?? 0,
-                            height: gif.height ?? 0,
-                        });
-                    }}
-                    title="Save to GIF Folder"
-                >
-                    📁
-                </div>
-            </ErrorBoundary>
-        );
     },
 
     renderFoldersTab() {
