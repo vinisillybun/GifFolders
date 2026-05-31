@@ -6,8 +6,6 @@ function generateId(): string {
     return `folder_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
-const EMOJI_PRESETS = ["😂", "😭", "🐱", "🐶", "🔥", "💯", "🤡", "👀", "💀", "🗿", "✨", "🎭", "🎮", "🌈", "💅"];
-
 interface Props {
     modalProps: any;
     onCreated: (folderId: string) => void;
@@ -60,28 +58,8 @@ export function CreateFolderModal({ modalProps, onCreated, onCancel }: Props) {
                 <div style={{ padding: "12px 0", display: "flex", flexDirection: "column", gap: 12 }}>
                     <div>
                         <Text variant="text-sm/semibold" style={{ marginBottom: 6 }}>Icon</Text>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
-                            {EMOJI_PRESETS.map(e => (
-                                <button
-                                    key={e}
-                                    onClick={() => { setEmoji(e); setCustomEmoji(""); }}
-                                    style={{
-                                        fontSize: 20,
-                                        background: emoji === e && !customEmoji
-                                            ? "var(--brand-experiment)"
-                                            : "var(--background-secondary)",
-                                        border: "2px solid transparent",
-                                        borderRadius: 6,
-                                        padding: "2px 4px",
-                                        cursor: "pointer",
-                                    }}
-                                >
-                                    {e}
-                                </button>
-                            ))}
-                        </div>
                         <TextInput
-                            placeholder="Or type a custom emoji / symbol…"
+                            placeholder="Type an emoji or symbol…"
                             value={customEmoji}
                             onChange={v => setCustomEmoji(v)}
                             maxLength={4}
