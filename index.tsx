@@ -16,17 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { addContextMenuPatch, NavContextMenuPatchCallback, removeContextMenuPatch } from "@api/ContextMenu";
 import { DataStore } from "@api/index";
-import { showNotice } from "@api/Notices";
 import ErrorBoundary from "@components/ErrorBoundary";
-import { Devs } from "@utils/constants";
-import { useForceUpdater } from "@utils/react";
 import definePlugin from "@utils/types";
-import { Menu, React, useState } from "@webpack/common";
+import { React } from "@webpack/common";
 
 import { FolderManager } from "./FolderManager";
 import { GifFoldersUI } from "./GifFoldersUI";
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface GifItem {
     url: string;
@@ -46,6 +44,8 @@ export interface GifFolder {
 
 export type FolderStore = Record<string, GifFolder>;
 
+// ─── DataStore ────────────────────────────────────────────────────────────────
+
 const STORE_KEY = "GifFolders_v1";
 
 export async function loadFolders(): Promise<FolderStore> {
@@ -56,19 +56,7 @@ export async function saveFolders(folders: FolderStore): Promise<void> {
     await DataStore.set(STORE_KEY, folders);
 }
 
-const gifContextMenuPatch: NavContextMenuPatchCallback = (children, props) => {
-    const gif = props?.gif ?? props?.item;
-    if (!gif?.url) return;
-
-    children.push(
-        <Menu.MenuSeparator />,
-        <Menu.MenuItem
-            id="gif-folders-save"
-            label="Save to GIF Folder…"
-            action={() => FolderManager.openSaveModal(gif)}
-        />
-    );
-};
+// ─── Plugin ───────────────────────────────────────────────────────────────────
 
 export default definePlugin({
     name: "GifFolders",
@@ -77,21 +65,58 @@ export default definePlugin({
 
     patches: [
         {
-            find: "GIF_PICKER_FAVORITES_SEARCH_PLACEHOLDER",
+            // Found in module 285961 - the GIF results list renderItem function.
+            // We intercept the renderExtras prop passed to each GIF tile (b component)
+            // and add our own 📁 save button overlay on top.
+            find: "renderEmptyFavorites()",
             replacement: {
-                match: /(\i\.default\.Messages\.GIF_PICKER_FAVORITES_SEARCH_PLACEHOLDER)/,
-                replace: "$1, gifFoldersUINode: $self.renderFoldersTab()",
+                // Original: renderExtras:()=>(0,X.jsx)(SomeComponent,{className:someClass,...a})
+                // We replace it to call our handler with the gif item `a`
+                match: /renderExtras:\(\)=>\(0,\i\.jsx\)\(\i\.\i,\{className:\i\.\i,\.\.\.(\i)\}\)/,
+                replace: "renderExtras:()=>$self.renderGifExtras($1)",
             },
-            predicate: () => false,
         },
     ],
 
-    start() {
-        addContextMenuPatch("gif-picker-gif-context-menu", gifContextMenuPatch);
-    },
-
-    stop() {
-        removeContextMenuPatch("gif-picker-gif-context-menu", gifContextMenuPatch);
+    renderGifExtras(gif: any) {
+        return (
+            <ErrorBoundary noop>
+                <>
+                    {/* Render the original favorite star by recreating it inline */}
+                    <div
+                        style={{
+                            position: "absolute",
+                            bottom: 4,
+                            right: 4,
+                            zIndex: 10,
+                            background: "rgba(0,0,0,0.6)",
+                            borderRadius: "50%",
+                            width: 24,
+                            height: 24,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            cursor: "pointer",
+                            fontSize: 13,
+                            userSelect: "none" as const,
+                        }}
+                        onClick={(e: React.MouseEvent) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            FolderManager.openSaveModal({
+                                url: gif.url,
+                                src: gif.src,
+                                width: gif.width ?? 0,
+                                height: gif.height ?? 0,
+                            });
+                        }}
+                        title="Save to GIF Folder"
+                    >
+                        📁
+                    </div>
+                </>
+            </ErrorBoundary>
+        );
     },
 
     renderFoldersTab() {
