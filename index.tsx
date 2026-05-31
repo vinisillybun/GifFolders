@@ -72,7 +72,7 @@ const gifContextMenuPatch: NavContextMenuPatchCallback = (children, props) => {
 
 export default definePlugin({
     name: "GifFolders",
-    description: "Organize your GIFs into unlimited custom folders — no Discord favorites limit!",
+    description: "Organize your GIFs into unlimited custom folders, no Discord favorites limit! :3",
     authors: [{ name: "viniiiiiiiiiiiiiiii", id: 530056363124981772n }],
 
     patches: [
