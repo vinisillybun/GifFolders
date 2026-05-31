@@ -1,17 +1,11 @@
-/*
- * GifFolders – CreateFolderModal.tsx
- */
-
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot } from "@utils/modal";
 import { Button, React, Text, TextInput, useState } from "@webpack/common";
-
 import { GifFolder, loadFolders, saveFolders } from "..";
 
 function generateId(): string {
     return `folder_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
-// Common emoji presets for quick picking
 const EMOJI_PRESETS = ["😂", "😭", "🐱", "🐶", "🔥", "💯", "🤡", "👀", "💀", "🗿", "✨", "🎭", "🎮", "🌈", "💅"];
 
 interface Props {
@@ -35,7 +29,6 @@ export function CreateFolderModal({ modalProps, onCreated, onCancel }: Props) {
         setSaving(true);
         const folders = await loadFolders();
 
-        // Duplicate check
         if (Object.values(folders).some(f => f.name.toLowerCase() === trimmed.toLowerCase())) {
             setError("A folder with that name already exists.");
             setSaving(false);
@@ -65,8 +58,6 @@ export function CreateFolderModal({ modalProps, onCreated, onCancel }: Props) {
             </ModalHeader>
             <ModalContent>
                 <div style={{ padding: "12px 0", display: "flex", flexDirection: "column", gap: 12 }}>
-
-                    {/* Emoji picker */}
                     <div>
                         <Text variant="text-sm/semibold" style={{ marginBottom: 6 }}>Icon</Text>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
@@ -97,7 +88,6 @@ export function CreateFolderModal({ modalProps, onCreated, onCancel }: Props) {
                         />
                     </div>
 
-                    {/* Folder name */}
                     <div>
                         <Text variant="text-sm/semibold" style={{ marginBottom: 6 }}>Name</Text>
                         <TextInput
@@ -117,7 +107,6 @@ export function CreateFolderModal({ modalProps, onCreated, onCancel }: Props) {
                         )}
                     </div>
 
-                    {/* Preview */}
                     <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text-muted)" }}>
                         <Text variant="text-sm/normal">Preview: </Text>
                         <span style={{ fontSize: 18 }}>{customEmoji || emoji}</span>
