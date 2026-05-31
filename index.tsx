@@ -19,6 +19,7 @@
 import { addContextMenuPatch, NavContextMenuPatchCallback, removeContextMenuPatch } from "@api/ContextMenu";
 import { DataStore } from "@api/index";
 import ErrorBoundary from "@components/ErrorBoundary";
+import { findGroupChildrenByChildId } from "@api/ContextMenu";
 import definePlugin from "@utils/types";
 import { Menu, React } from "@webpack/common";
 
@@ -57,30 +58,67 @@ export async function saveFolders(folders: FolderStore): Promise<void> {
     await DataStore.set(STORE_KEY, folders);
 }
 
-// ─── Image context menu patch (right-click GIF in chat) ──────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const imageContextMenuPatch: NavContextMenuPatchCallback = (children, props) => {
-    // props.src is the image/gif URL when right-clicking media in chat
-    const src = props?.src ?? props?.href;
-    if (!src) return;
+function isGifUrl(url: string): boolean {
+    if (!url) return false;
+    return (
+        /\.gif($|\?)/i.test(url) ||
+        url.includes("tenor.com") ||
+        url.includes("giphy.com") ||
+        url.includes("media.discordapp") ||
+        url.includes("cdn.discordapp.com")
+    );
+}
 
-    // Only add for GIFs (tenor, giphy, media.discordapp.net, etc.)
-    const isGif = /\.(gif)$/i.test(src) || src.includes("tenor.com") || src.includes("giphy.com") || src.includes("media.discordapp");
-    if (!isGif) return;
+function getGifUrlFromMessage(message: any): string | null {
+    // Check embeds first (linked GIFs)
+    if (message?.embeds?.length > 0) {
+        for (const embed of message.embeds) {
+            const url = embed.url ?? embed.image?.url ?? embed.thumbnail?.url;
+            if (url && isGifUrl(url)) return url;
+        }
+    }
+    // Check attachments
+    if (message?.attachments?.length > 0) {
+        for (const att of message.attachments) {
+            if (att.content_type?.includes("gif") || isGifUrl(att.url)) return att.url;
+        }
+    }
+    // Check message content (plain URL)
+    if (message?.content && isGifUrl(message.content.trim())) {
+        return message.content.trim();
+    }
+    return null;
+}
 
-    children.push(
-        <Menu.MenuSeparator />,
+// ─── Message context menu patch ───────────────────────────────────────────────
+
+const messageContextMenuPatch: NavContextMenuPatchCallback = (children, props) => {
+    const gifUrl = getGifUrlFromMessage(props?.message);
+    if (!gifUrl) return;
+
+    // Insert below "save-image" group if it exists, otherwise just push
+    const saveImageGroup = findGroupChildrenByChildId("save-image", children);
+    const menuItem = (
         <Menu.MenuItem
-            id="gif-folders-save-image"
+            id="gif-folders-save-chat"
             label="Save to GIF Folder…"
             action={() => FolderManager.openSaveModal({
-                url: src,
-                src,
-                width: props?.width ?? 0,
-                height: props?.height ?? 0,
+                url: gifUrl,
+                src: gifUrl,
+                width: 0,
+                height: 0,
             })}
         />
     );
+
+    if (saveImageGroup) {
+        const saveImageIndex = saveImageGroup.findIndex((c: any) => c?.props?.id === "save-image");
+        saveImageGroup.splice(saveImageIndex + 1, 0, menuItem);
+    } else {
+        children.push(<Menu.MenuSeparator />, menuItem);
+    }
 };
 
 // ─── Plugin ───────────────────────────────────────────────────────────────────
@@ -92,8 +130,8 @@ export default definePlugin({
 
     patches: [
         {
-            // Found in module 285961 - the GIF results list renderItem function.
-            // Intercepts the renderExtras prop on each GIF tile to add our 📁 button.
+            // Module 285961 — GIF results list renderItem.
+            // Intercepts renderExtras on each GIF tile to add our 📁 save button.
             find: "renderEmptyFavorites()",
             replacement: {
                 match: /renderExtras:\(\)=>\(0,\i\.jsx\)\(\i\.\i,\{className:\i\.\i,\.\.\.(\i)\}\)/,
@@ -103,11 +141,11 @@ export default definePlugin({
     ],
 
     start() {
-        addContextMenuPatch("image-context", imageContextMenuPatch);
+        addContextMenuPatch("message", messageContextMenuPatch);
     },
 
     stop() {
-        removeContextMenuPatch("image-context", imageContextMenuPatch);
+        removeContextMenuPatch("message", messageContextMenuPatch);
     },
 
     renderGifExtras(gif: any) {
