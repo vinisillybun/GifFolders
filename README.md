@@ -1,0 +1,2 @@
+# GifFolders
+A Vencord Userplugin
