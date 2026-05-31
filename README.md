@@ -1,7 +1,7 @@
 # GifFolders 
 A Vencord Userplugin
 
-Organize your GIFs into unlimited custom folders, stored locally in IndexedDB via Vencord's DataStore — completely bypassing Discord's built-in favorites limit.
+Organize your GIFs into unlimited custom folders, stored locally in IndexedDB via Vencord's DataStore, completely bypassing Discord's built-in favorites limit.
 
 > ⚠️ **Disclaimer:** This project was built with the help of AI. If you don't like that, don't use it.
 
@@ -9,8 +9,8 @@ Organize your GIFs into unlimited custom folders, stored locally in IndexedDB vi
 
 | Feature | Details |
 
-| **Unlimited folders** | No cap — create as many as you want |
-| **Unlimited GIFs per folder** | Stored locally, not on Discord's servers |
+| **Unlimited folders** | You can reate as many as you want |
+| **Unlimited GIFs per folder** | Stored locally, not on Discord's servers (thus bypassing Discord's favorite limit) |
 | **Custom icons** | Pick an emoji or type your own for each folder |
 | **Search within folders** | Filter GIFs by URL inside any folder |
 | **Right-click to save** | Right-click any GIF in the picker → "Save to GIF Folder…" |
@@ -19,7 +19,7 @@ Organize your GIFs into unlimited custom folders, stored locally in IndexedDB vi
 
 ## Installation
 
-This is a **userplugin** — you need Vencord built from source.
+This is a **userplugin**, you need Vencord built from source.
 
 1. **Clone Vencord from source** (if you haven't already):
    ```bash
@@ -55,13 +55,11 @@ This is a **userplugin** — you need Vencord built from source.
 4. **Enable the plugin** in Discord:
    `Settings → Vencord → Plugins → search "GifFolders" → toggle on`
 
----
-
 ## Usage
 
 ### Saving a GIF
 1. Open the GIF picker (the GIF button in the chat bar).
-2. Find any GIF — in **Trending**, **Search results**, or **Favorites**.
+2. Get any GIF you want to save.
 3. **Right-click** the GIF.
 4. Click **"Save to GIF Folder…"**.
 5. Pick an existing folder or click **"New folder & save"**.
@@ -73,11 +71,11 @@ In a future update this will be injected directly into the GIF picker's tab bar 
 For now, access your folders by opening the plugin's settings page (if configured).
 
 ### Keyboard shortcut (optional extension)
-You can bind the folder browser to a key using Vencord's `KeybindHelper` API — see `index.tsx` for how to extend this.
+You can bind the folder browser to a key using Vencord's `KeybindHelper` API see `index.tsx` for how to extend this.
 
 ### Export / Import
 In the `GifFoldersUI` toolbar:
-- **⬇️** exports all your folders to a `.json` file — great for backups or migrating to another PC.
+- **⬇️** exports all your folders to a `.json` file great for backups or migrating to another PC.
 - **⬆️** imports a `.json` backup. Existing folders are kept; only new ones are added (no overwrites).
 
 ## File structure
@@ -102,8 +100,6 @@ modals/
 - Discord's minified code changes every update. The webpack patch in `index.tsx` is **disabled by default** (`predicate: false`) to avoid breakage. The context-menu injection works without any patch and is always active.
 - If Discord renames the GIF context menu identifier, the right-click menu item may stop appearing. Check the `gif-picker-gif-context-menu` patch key against the current Discord build using Vencord's Patch Helper.
 
----
-
 ## License
 
-GPL-3.0-or-later — same as Vencord.
+GPL-3.0-or-later, same as Vencord.
