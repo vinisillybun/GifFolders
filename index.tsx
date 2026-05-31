@@ -85,14 +85,11 @@ const gifContextMenuPatch: NavContextMenuPatchCallback = (children, props) => {
 
 export default definePlugin({
     name: "GifFolders",
-    description: "Organize your GIFs into unlimited custom folders — no Discord favorites limit!",
-    authors: [Devs.Ven],   // replace with your own dev entry
+    description: "Organize your GIFs into unlimited custom folders, no Discord favorites limit! :3",
+    authors: authors: [{ name: "vini", id: 530056363124981772 }],,  
 
     patches: [
         {
-            // Inject our custom folder tab into the GIF picker's favorites panel.
-            // We find the component that renders the "Favorites" header and
-            // append our folder selector below it.
             find: "GIF_PICKER_FAVORITES_SEARCH_PLACEHOLDER",
             replacement: {
                 match: /(\i\.default\.Messages\.GIF_PICKER_FAVORITES_SEARCH_PLACEHOLDER)/,
