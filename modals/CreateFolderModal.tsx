@@ -1,6 +1,6 @@
-import { ModalRoot, ModalHeader, ModalContent, ModalFooter } from "@utils/modal";
+import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot } from "@utils/modal";
 import { Button, Forms, React, Text, TextInput, useState } from "@webpack/common";
-import { GifFolder, FolderStore, loadFolders, saveFolders } from "..";
+import { GifFolder, loadFolders, saveFolders } from "..";
 
 interface CreateFolderModalProps {
     modalProps: any;
@@ -10,7 +10,7 @@ interface CreateFolderModalProps {
 
 export function CreateFolderModal({ modalProps, onCreated, onCancel }: CreateFolderModalProps) {
     const [name, setName] = useState("");
-    const [icon, setIcon] = useState("📁");
+    const [color, setColor] = useState("#5865F2");
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState("");
 
@@ -27,6 +27,7 @@ export function CreateFolderModal({ modalProps, onCreated, onCancel }: CreateFol
             const newFolder: GifFolder = {
                 id,
                 name: trimmed,
+                color,
                 gifs: [],
                 createdAt: Date.now(),
             };
@@ -42,23 +43,45 @@ export function CreateFolderModal({ modalProps, onCreated, onCancel }: CreateFol
     return (
         <ModalRoot {...modalProps}>
             <ModalHeader>
-                <Text variant="heading-lg/semibold" style={{ color: "var(--header-primary)" }}>
+                <Text variant="heading-lg/semibold" style={{ flex: 1 }}>
                     Create GIF Folder
                 </Text>
+                <ModalCloseButton onClick={modalProps.onClose} />
             </ModalHeader>
 
             <ModalContent>
                 <div style={{ padding: "16px 0", display: "flex", flexDirection: "column", gap: 12 }}>
                     <Forms.FormSection>
-                        <Forms.FormTitle style={{ color: "var(--header-secondary)" }}>
-                            Folder Name
-                        </Forms.FormTitle>
+                        <Forms.FormTitle>Folder Name</Forms.FormTitle>
                         <TextInput
                             placeholder="My Folder"
                             value={name}
                             onChange={setName}
                             autoFocus
                         />
+                    </Forms.FormSection>
+
+                    <Forms.FormSection>
+                        <Forms.FormTitle>Folder Color</Forms.FormTitle>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <input
+                                type="color"
+                                value={color}
+                                onChange={e => setColor(e.target.value)}
+                                style={{
+                                    width: 36,
+                                    height: 36,
+                                    border: "none",
+                                    borderRadius: 4,
+                                    cursor: "pointer",
+                                    background: "none",
+                                    padding: 0,
+                                }}
+                            />
+                            <Text variant="text-sm/normal" style={{ color: "var(--text-muted)" }}>
+                                {color}
+                            </Text>
+                        </div>
                     </Forms.FormSection>
 
                     {error && (
@@ -70,23 +93,20 @@ export function CreateFolderModal({ modalProps, onCreated, onCancel }: CreateFol
             </ModalContent>
 
             <ModalFooter>
-                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", width: "100%" }}>
-                    <Button
-                        look={Button.Looks.LINK}
-                        color={Button.Colors.PRIMARY}
-                        onClick={() => { modalProps.onClose(); onCancel(); }}
-                        style={{ color: "var(--text-muted)" }}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        color={Button.Colors.BRAND}
-                        disabled={creating}
-                        onClick={handleCreate}
-                    >
-                        {creating ? "Creating…" : "Create"}
-                    </Button>
-                </div>
+                <Button
+                    color={Button.Colors.BRAND}
+                    disabled={creating}
+                    onClick={handleCreate}
+                >
+                    {creating ? "Creating…" : "Create"}
+                </Button>
+                <Button
+                    look={Button.Looks.LINK}
+                    color={Button.Colors.PRIMARY}
+                    onClick={() => { modalProps.onClose(); onCancel(); }}
+                >
+                    Cancel
+                </Button>
             </ModalFooter>
         </ModalRoot>
     );
