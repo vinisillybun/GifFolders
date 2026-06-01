@@ -26,7 +26,7 @@ This is a **userplugin**, you need Vencord built from source.
    cd Vencord
    pnpm install
    pnpm build
-   pnpm inject   # or the appropriate inject command for your OS
+   pnpm inject
    ```
 
 2. **Copy this folder** into Vencord's userplugins directory:
