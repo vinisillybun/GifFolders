@@ -60,7 +60,7 @@ function getGifUrlFromMessage(message: any): string | null {
             // Exclude mp4/video content types explicitly
             const ct: string = att.content_type ?? "";
             if (ct.includes("mp4") || ct.includes("video")) continue;
-            if ((ct.includes("gif") || ct.includes("webp")) || isGifUrl(att.url)) return att.url;
+            if (ct.includes("gif") || ct.includes("webp") || isGifUrl(att.url)) return att.url;
         }
     }
     if (message?.content && isGifUrl(message.content.trim())) {
@@ -123,6 +123,9 @@ export default definePlugin({
     description: "Organize your GIFs into unlimited custom folders, no Discord favorites limit! :3",
     authors: [{ name: "viniiiiiiiiiiiiiiii", id: 530056363124981772n }],
 
+    // This patch injects the folder UI into the GIF picker's favorites tab.
+    // Discord's internal structure changes frequently; if it stops working,
+    // the UI is still accessible via Settings → Vencord → Plugins → GifFolders.
     patches: [
         {
             find: "getFavoriteGIFs",
@@ -143,26 +146,13 @@ export default definePlugin({
         removeContextMenuPatch("gif-picker-gif-context-menu", gifPickerContextMenuPatch);
     },
 
-    renderFavoritesTile() {
+    // Shown in Settings → Vencord → Plugins → GifFolders — always accessible
+    // even if the GIF picker patch doesn't match Discord's current build.
+    settingsAboutComponent() {
         return (
-            <div
-                style={{
-                    background: "var(--background-floating)",
-                    borderRadius: 8,
-                    padding: "12px 16px",
-                    display: "flex",
-                    flexDirection: "column",
-                    height: "auto",
-                    position: "relative",
-                    overflow: "visible",
-                    marginBottom: 16,
-                    borderBottom: "2px solid var(--background-modifier-accent)",
-                }}
-            >
-                <ErrorBoundary>
-                    <GifFoldersUI />
-                </ErrorBoundary>
-            </div>
+            <ErrorBoundary>
+                <GifFoldersUI />
+            </ErrorBoundary>
         );
     },
 
