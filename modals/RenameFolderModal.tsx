@@ -1,74 +1,83 @@
-/*
- * GifFolders – RenameFolderModal.tsx
- */
-
-import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot } from "@utils/modal";
-import { Button, React, Text, TextInput, useState } from "@webpack/common";
-
-import { FolderManager } from "../FolderManager";
+import { ModalRoot, ModalHeader, ModalContent, ModalFooter } from "@utils/modal";
+import { Button, Forms, React, Text, TextInput, useState } from "@webpack/common";
 import { GifFolder } from "..";
+import { FolderManager } from "../FolderManager";
 
-const DEFAULT_COLORS = [
-    "#5865F2", "#57F287", "#FEE75C", "#EB459E",
-    "#ED4245", "#9B59B6", "#1ABC9C", "#E67E22",
-];
-
-interface Props {
+interface RenameFolderModalProps {
     modalProps: any;
     folder: GifFolder;
     onRenamed: () => void;
 }
 
-export function RenameFolderModal({ modalProps, folder, onRenamed }: Props) {
+export function RenameFolderModal({ modalProps, folder, onRenamed }: RenameFolderModalProps) {
     const [name, setName] = useState(folder.name);
-    const [color, setColor] = useState(folder.color ?? DEFAULT_COLORS[0]);
     const [saving, setSaving] = useState(false);
+    const [error, setError] = useState("");
 
     const handleSave = async () => {
+        const trimmed = name.trim();
+        if (!trimmed) {
+            setError("Folder name cannot be empty.");
+            return;
+        }
         setSaving(true);
-        await FolderManager.renameFolder(folder.id, name, color);
-        onRenamed();
-        modalProps.onClose();
+        try {
+            await FolderManager.renameFolder(folder.id, trimmed);
+            modalProps.onClose();
+            onRenamed();
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (
-        <ModalRoot {...modalProps} size="small">
+        <ModalRoot {...modalProps}>
             <ModalHeader>
-                <Text variant="heading-md/bold">Edit Folder</Text>
-                <ModalCloseButton />
+                <Text variant="heading-lg/semibold" style={{ color: "var(--header-primary)" }}>
+                    Rename Folder
+                </Text>
             </ModalHeader>
+
             <ModalContent>
-                <div style={{ padding: "12px 0", display: "flex", flexDirection: "column", gap: 12 }}>
-                    <div>
-                        <Text variant="text-sm/semibold" style={{ marginBottom: 6 }}>Color</Text>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                            {DEFAULT_COLORS.map(c => (
-                                <button
-                                    key={c}
-                                    onClick={() => setColor(c)}
-                                    style={{
-                                        width: 32, height: 32, borderRadius: "50%",
-                                        background: c, border: "none", cursor: "pointer",
-                                        boxShadow: color === c ? `0 0 0 3px white, 0 0 0 5px ${c}` : "none",
-                                        transition: "box-shadow 0.15s",
-                                    }}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                    <div>
-                        <Text variant="text-sm/semibold" style={{ marginBottom: 6 }}>Name</Text>
-                        <TextInput value={name} onChange={setName} maxLength={50} autoFocus />
-                    </div>
+                <div style={{ padding: "16px 0", display: "flex", flexDirection: "column", gap: 12 }}>
+                    <Forms.FormSection>
+                        <Forms.FormTitle style={{ color: "var(--header-secondary)" }}>
+                            Folder Name
+                        </Forms.FormTitle>
+                        <TextInput
+                            placeholder={folder.name}
+                            value={name}
+                            onChange={setName}
+                            autoFocus
+                        />
+                    </Forms.FormSection>
+
+                    {error && (
+                        <Text variant="text-sm/normal" style={{ color: "var(--status-danger)" }}>
+                            {error}
+                        </Text>
+                    )}
                 </div>
             </ModalContent>
+
             <ModalFooter>
-                <Button onClick={handleSave} color={Button.Colors.BRAND} disabled={saving || !name.trim()}>
-                    Save
-                </Button>
-                <Button onClick={modalProps.onClose} color={Button.Colors.TRANSPARENT} style={{ marginLeft: 8 }}>
-                    Cancel
-                </Button>
+                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", width: "100%" }}>
+                    <Button
+                        look={Button.Looks.LINK}
+                        color={Button.Colors.PRIMARY}
+                        onClick={() => modalProps.onClose()}
+                        style={{ color: "var(--text-muted)" }}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        color={Button.Colors.BRAND}
+                        disabled={saving}
+                        onClick={handleSave}
+                    >
+                        {saving ? "Saving…" : "Save"}
+                    </Button>
+                </div>
             </ModalFooter>
         </ModalRoot>
     );
