@@ -1,19 +1,11 @@
-/*
- * Vencord, a modification for Discord's desktop app
- * Copyright (c) 2024 Vendicated and contributors
- * SPDX-License-Identifier: GPL-3.0-or-later
- */
-
 import { addContextMenuPatch, findGroupChildrenByChildId, NavContextMenuPatchCallback, removeContextMenuPatch } from "@api/ContextMenu";
 import { DataStore } from "@api/index";
 import ErrorBoundary from "@components/ErrorBoundary";
 import definePlugin from "@utils/types";
 import { Menu, React } from "@webpack/common";
-
+import { openModal } from "@utils/modal";
 import { FolderManager } from "./FolderManager";
-import { FolderTiles } from "./GifFoldersUI";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+import { GifFoldersUI } from "./GifFoldersUI";
 
 export interface GifItem {
     url: string;
@@ -33,8 +25,6 @@ export interface GifFolder {
 
 export type FolderStore = Record<string, GifFolder>;
 
-// ─── DataStore ────────────────────────────────────────────────────────────────
-
 const STORE_KEY = "GifFolders_v1";
 
 export async function loadFolders(): Promise<FolderStore> {
@@ -45,18 +35,14 @@ export async function saveFolders(folders: FolderStore): Promise<void> {
     await DataStore.set(STORE_KEY, folders);
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function isGifUrl(url: string): boolean {
     if (!url) return false;
     return (
-        /\.(gif|webp|mp4|png|jpg|jpeg)($|\?)/i.test(url) ||
+        /\.(gif|webp)($|\?)/i.test(url) ||
         url.includes("tenor.com") ||
         url.includes("giphy.com") ||
         url.includes("media.discordapp") ||
-        url.includes("cdn.discordapp.com") ||
-        url.includes("media.tenor.com") ||
-        url.includes("media.giphy.com")
+        url.includes("cdn.discordapp.com")
     );
 }
 
@@ -69,7 +55,7 @@ function getGifUrlFromMessage(message: any): string | null {
     }
     if (message?.attachments?.length > 0) {
         for (const att of message.attachments) {
-            if (att.content_type?.includes("gif") || isGifUrl(att.url)) return att.url;
+            if (att.content_type?.includes("gif") || att.content_type?.includes("webp") || isGifUrl(att.url)) return att.url;
         }
     }
     if (message?.content && isGifUrl(message.content.trim())) {
@@ -78,13 +64,12 @@ function getGifUrlFromMessage(message: any): string | null {
     return null;
 }
 
-// ─── Message context menu patch ───────────────────────────────────────────────
-
 const messageContextMenuPatch: NavContextMenuPatchCallback = (children, props) => {
     const gifUrl = getGifUrlFromMessage(props?.message);
     if (!gifUrl) return;
 
     const saveImageGroup = findGroupChildrenByChildId("save-image", children);
+
     const menuItem = (
         <Menu.MenuItem
             id="gif-folders-save-chat"
@@ -99,14 +84,12 @@ const messageContextMenuPatch: NavContextMenuPatchCallback = (children, props) =
     );
 
     if (saveImageGroup) {
-        const idx = saveImageGroup.findIndex((c: any) => c?.props?.id === "save-image");
-        saveImageGroup.splice(idx + 1, 0, menuItem);
+        const saveImageIndex = saveImageGroup.findIndex((c: any) => c?.props?.id === "save-image");
+        saveImageGroup.splice(saveImageIndex + 1, 0, menuItem);
     } else {
         children.push(<Menu.MenuSeparator />, menuItem);
     }
 };
-
-// ─── Plugin ───────────────────────────────────────────────────────────────────
 
 export default definePlugin({
     name: "GifFolders",
@@ -115,22 +98,12 @@ export default definePlugin({
 
     patches: [
         {
-            // Module 622142, class z.
-            // renderContent() returns either the front page (H) or the gif grid (L.Ay).
-            // We patch the div wrapper that holds the content (className:q.Qs) to call
-            // our method instead of renderContent() directly, so we can prepend folder tiles.
-            //
-            // From source:
-            //   (0,s.jsx)("div",{className:q.Qs,children:this.renderContent()})
-            //
-            // We change renderContent to renderContentWithFolders which calls the original
-            // and wraps it when in FAVORITES mode.
-            find: "renderHeaderContent()",
+            find: "getFavoriteGIFs",
             replacement: {
-                match: /(\(0,\i\.jsx\)\("div",\{className:\i\.\i,children:)(this\.renderContent\(\))/,
-                replace: "$1$self.wrapContent($2,this)",
-            },
-        },
+                match: /(?<=children:\s*\[)(?=.+?renderFavorite)/s,
+                replace: "$self.renderFolders(),"
+            }
+        }
     ],
 
     start() {
@@ -141,21 +114,30 @@ export default definePlugin({
         removeContextMenuPatch("message", messageContextMenuPatch);
     },
 
-    wrapContent(content: React.ReactNode, instance: any) {
-        // Only inject when viewing favorites (resultType === "Favorites")
-        const isFavorites = instance?.state?.resultType === "Favorites";
-        if (!isFavorites) return content;
-
-        // onSelectGIF is the prop that actually sends the GIF to the chat input
-        const onSelectGIF = instance?.props?.onSelectGIF;
-
+    renderFavoritesTile() {
         return (
-            <>
-                <ErrorBoundary noop>
-                    <FolderTiles onSelectGIF={onSelectGIF} />
+            <div
+                style={{
+                    background: "var(--background-floating)",
+                    borderRadius: 8,
+                    padding: "12px 16px",
+                    display: "flex",
+                    flexDirection: "column",
+                    height: "auto",
+                    position: "relative",
+                    overflow: "visible",
+                    marginBottom: 16,
+                    borderBottom: "2px solid var(--background-modifier-accent)",
+                }}
+            >
+                <ErrorBoundary>
+                    <GifFoldersUI />
                 </ErrorBoundary>
-                {content}
-            </>
+            </div>
         );
     },
+
+    renderFolders() {
+        return <ErrorBoundary><GifFoldersUI /></ErrorBoundary>;
+    }
 });
