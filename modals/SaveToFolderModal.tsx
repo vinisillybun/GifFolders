@@ -1,135 +1,146 @@
-import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot } from "@utils/modal";
-import { Button, React, Text, useState, useEffect } from "@webpack/common";
+import { openModal, ModalRoot, ModalHeader, ModalContent, ModalFooter } from "@utils/modal";
+import { Button, Forms, React, Text, useState, useEffect } from "@webpack/common";
 import { FolderManager } from "../FolderManager";
 import { GifFolder, GifItem, loadFolders } from "..";
+import { CreateFolderModal } from "./CreateFolderModal";
 
-interface Props {
+interface SaveToFolderModalProps {
     modalProps: any;
     gif: GifItem;
 }
 
-export function SaveToFolderModal({ modalProps, gif }: Props) {
-    const [folders, setFolders] = useState<GifFolder[]>([]);
+export function SaveToFolderModal({ modalProps, gif }: SaveToFolderModalProps) {
+    const [folders, setFolders] = useState<Record<string, GifFolder>>({});
+    const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
-    const [savedTo, setSavedTo] = useState<string | null>(null);
-    const [imageError, setImageError] = useState(false);
+    const [saved, setSaved] = useState(false);
 
     useEffect(() => {
-        loadFolders().then(f => setFolders(Object.values(f)));
+        loadFolders().then(setFolders);
     }, []);
 
-    const saveToFolder = async (folderId: string) => {
-        setSaving(true);
-        await FolderManager.addGifToFolder(folderId, gif);
-        setSavedTo(folderId);
-        setSaving(false);
-        setTimeout(() => modalProps.onClose(), 700);
-    };
+    const folderList = Object.values(folders);
 
-    const createAndSave = async () => {
-        const id = await FolderManager.openCreateModal();
-        if (id) {
-            const updated = await loadFolders();
-            setFolders(Object.values(updated));
-            await saveToFolder(id);
+    const handleSave = async () => {
+        if (!selectedFolderId) return;
+        setSaving(true);
+        try {
+            await FolderManager.addGifToFolder(selectedFolderId, gif);
+            setSaved(true);
+            setTimeout(() => modalProps.onClose(), 800);
+        } finally {
+            setSaving(false);
         }
     };
 
+    const handleNewFolder = () => {
+        openModal(props => (
+            <CreateFolderModal
+                modalProps={props}
+                onCreated={async id => {
+                    await FolderManager.addGifToFolder(id, gif);
+                    const updated = await loadFolders();
+                    setFolders(updated);
+                    setSaved(true);
+                    setTimeout(() => modalProps.onClose(), 800);
+                }}
+                onCancel={() => { }}
+            />
+        ));
+    };
+
     return (
-        <ModalRoot {...modalProps} size="small">
+        <ModalRoot {...modalProps}>
             <ModalHeader>
-                <Text variant="heading-md/bold">Save GIF to folder</Text>
-                <ModalCloseButton />
+                <Text variant="heading-lg/semibold" style={{ color: "var(--header-primary)" }}>
+                    Save GIF to Folder
+                </Text>
             </ModalHeader>
+
             <ModalContent>
-                <div style={{ padding: "12px 0" }}>
-                    {!imageError ? (
-                        <img
-                            src={gif.src}
-                            alt=""
-                            onError={() => setImageError(true)}
-                            style={{
-                                width: "100%",
-                                maxHeight: 120,
-                                objectFit: "contain",
-                                borderRadius: 4,
-                                marginBottom: 12,
-                                background: "var(--background-secondary)",
-                            }}
-                        />
-                    ) : (
-                        <div style={{
+                <div style={{ padding: "16px 0", display: "flex", flexDirection: "column", gap: 8 }}>
+                    {/* GIF preview */}
+                    <img
+                        src={gif.src || gif.url}
+                        alt=""
+                        style={{
                             width: "100%",
-                            height: 120,
-                            background: "var(--background-secondary)",
+                            maxHeight: 120,
+                            objectFit: "contain",
                             borderRadius: 4,
-                            marginBottom: 12,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            color: "var(--text-muted)", fontSize: 13,
-                        }}>
-                            Failed to load preview
-                        </div>
-                    )}
-                    {folders.length === 0 ? (
-                        <Text
-                            variant="text-sm/normal"
-                            style={{ color: "var(--text-muted)", textAlign: "center", marginBottom: 10 }}
-                        >
-                            You don't have any folders yet.
+                            marginBottom: 8,
+                        }}
+                    />
+
+                    {folderList.length === 0 ? (
+                        <Text variant="text-sm/normal" style={{ color: "var(--text-muted)" }}>
+                            You have no folders yet. Create one below!
                         </Text>
                     ) : (
-                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                            {folders.map(f => {
-                                const alreadySaved = f.gifs.some(g => g.url === gif.url);
-                                const wasSavedNow = savedTo === f.id;
-                                return (
-                                    <button
-                                        key={f.id}
-                                        disabled={saving || alreadySaved}
-                                        onClick={() => saveToFolder(f.id)}
-                                        style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: 8,
-                                            padding: "8px 12px",
-                                            background: wasSavedNow
-                                                ? "var(--green-360)"
-                                                : "var(--background-secondary)",
-                                            border: "1px solid var(--background-modifier-accent)",
-                                            borderRadius: 6,
-                                            cursor: alreadySaved ? "not-allowed" : "pointer",
-                                            color: "var(--text-normal)",
-                                            opacity: alreadySaved ? 0.5 : 1,
-                                            textAlign: "left",
-                                        }}
-                                    >
-                                        <span style={{ flex: 1, fontWeight: 500 }}>{f.name}</span>
-                                        <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
-                                            {alreadySaved ? "Already saved" : `${f.gifs.length} GIFs`}
-                                        </span>
-                                    </button>
-                                );
-                            })}
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 200, overflowY: "auto" }}>
+                            {folderList.map(f => (
+                                <button
+                                    key={f.id}
+                                    onClick={() => setSelectedFolderId(f.id)}
+                                    style={{
+                                        background: selectedFolderId === f.id
+                                            ? (f.color ?? "var(--brand-experiment)")
+                                            : "var(--background-secondary)",
+                                        color: "var(--text-normal)",
+                                        border: "1px solid var(--background-modifier-accent)",
+                                        borderRadius: 6,
+                                        padding: "8px 12px",
+                                        cursor: "pointer",
+                                        textAlign: "left",
+                                        fontSize: 14,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 8,
+                                    }}
+                                >
+                                    <span style={{ color: "var(--text-normal)" }}>{f.name}</span>
+                                    <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
+                                        ({f.gifs.length} GIFs)
+                                    </span>
+                                </button>
+                            ))}
                         </div>
+                    )}
+
+                    {saved && (
+                        <Text variant="text-sm/normal" style={{ color: "var(--status-positive)", textAlign: "center" }}>
+                            ✅ Saved!
+                        </Text>
                     )}
                 </div>
             </ModalContent>
+
             <ModalFooter>
-                <Button
-                    onClick={createAndSave}
-                    color={Button.Colors.BRAND}
-                    size={Button.Sizes.SMALL}
-                >
-                    ➕ New folder & save
-                </Button>
-                <Button
-                    onClick={modalProps.onClose}
-                    color={Button.Colors.TRANSPARENT}
-                    size={Button.Sizes.SMALL}
-                    style={{ marginLeft: "auto" }}
-                >
-                    Cancel
-                </Button>
+                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", width: "100%" }}>
+                    <Button
+                        look={Button.Looks.LINK}
+                        color={Button.Colors.PRIMARY}
+                        onClick={handleNewFolder}
+                        style={{ color: "var(--text-normal)" }}
+                    >
+                        + New folder &amp; save
+                    </Button>
+                    <Button
+                        look={Button.Looks.LINK}
+                        color={Button.Colors.PRIMARY}
+                        onClick={() => modalProps.onClose()}
+                        style={{ color: "var(--text-muted)" }}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        color={Button.Colors.BRAND}
+                        disabled={!selectedFolderId || saving || saved}
+                        onClick={handleSave}
+                    >
+                        {saving ? "Saving…" : saved ? "Saved!" : "Save"}
+                    </Button>
+                </div>
             </ModalFooter>
         </ModalRoot>
     );
