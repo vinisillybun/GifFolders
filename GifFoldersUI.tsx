@@ -77,7 +77,7 @@ function GifBrowserModal({ folder, onClose, onGifSend, onReload }: {
                         ({gifs.length} GIFs)
                     </span>
                 </Text>
-                <button onClick={onClose} style={closeBtnStyle}>✕</button>
+                <button onClick={onClose} style={{ ...closeBtnStyle, marginLeft: "auto" }}>✕</button>
             </div>
 
             <TextInput
@@ -332,7 +332,7 @@ function ManageFoldersModal({ folders, onClose, onReload }: {
         }}>
             <div style={{ display: "flex", alignItems: "center" }}>
                 <Text variant="heading-md/bold" style={{ flex: 1, color: "var(--header-primary)" }}>Manage Folders</Text>
-                <button onClick={onClose} style={closeBtnStyle}>✕</button>
+                <button onClick={onClose} style={{ ...closeBtnStyle, marginLeft: "auto" }}>✕</button>
             </div>
             <div style={{ overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
                 {folders.length === 0 && (
