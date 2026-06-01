@@ -31,19 +31,7 @@ This is a **userplugin**, you need Vencord built from source.
 
 2. **Copy this folder** into Vencord's userplugins directory:
    ```
-   Vencord/src/userplugins/gifFolders/
-   ```
-   Your structure should look like:
-   ```
-   Vencord/src/userplugins/gifFolders/
-   ├── index.tsx
-   ├── FolderManager.tsx
-   ├── GifFoldersUI.tsx
-   ├── style.css
-   └── modals/
-       ├── CreateFolderModal.tsx
-       ├── RenameFolderModal.tsx
-       └── SaveToFolderModal.tsx
+   Vencord/src/userplugins/GifFolders/
    ```
 
 3. **Rebuild Vencord:**
