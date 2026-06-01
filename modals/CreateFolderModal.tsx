@@ -1,110 +1,92 @@
-/*
- * GifFolders – CreateFolderModal.tsx
- */
+import { ModalRoot, ModalHeader, ModalContent, ModalFooter } from "@utils/modal";
+import { Button, Forms, React, Text, TextInput, useState } from "@webpack/common";
+import { GifFolder, FolderStore, loadFolders, saveFolders } from "..";
 
-import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot } from "@utils/modal";
-import { Button, React, Text, TextInput, useState } from "@webpack/common";
-
-import { GifFolder, loadFolders, saveFolders } from "..";
-
-function generateId(): string {
-    return `folder_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-}
-
-const DEFAULT_COLORS = [
-    "#5865F2", "#57F287", "#FEE75C", "#EB459E",
-    "#ED4245", "#9B59B6", "#1ABC9C", "#E67E22",
-];
-
-interface Props {
+interface CreateFolderModalProps {
     modalProps: any;
-    onCreated: (folderId: string) => void;
+    onCreated: (id: string) => void;
     onCancel: () => void;
 }
 
-export function CreateFolderModal({ modalProps, onCreated, onCancel }: Props) {
+export function CreateFolderModal({ modalProps, onCreated, onCancel }: CreateFolderModalProps) {
     const [name, setName] = useState("");
-    const [color, setColor] = useState(DEFAULT_COLORS[0]);
-    const [saving, setSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [icon, setIcon] = useState("📁");
+    const [creating, setCreating] = useState(false);
+    const [error, setError] = useState("");
 
     const handleCreate = async () => {
         const trimmed = name.trim();
-        if (!trimmed) { setError("Folder name is required."); return; }
-        if (trimmed.length > 50) { setError("Name too long (max 50 chars)."); return; }
-
-        setSaving(true);
-        const folders = await loadFolders();
-
-        if (Object.values(folders).some(f => f.name.toLowerCase() === trimmed.toLowerCase())) {
-            setError("A folder with that name already exists.");
-            setSaving(false);
+        if (!trimmed) {
+            setError("Please enter a folder name.");
             return;
         }
-
-        const id = generateId();
-        const newFolder: GifFolder = { id, name: trimmed, color, gifs: [], createdAt: Date.now() };
-        folders[id] = newFolder;
-        await saveFolders(folders);
-        onCreated(id);
-        modalProps.onClose();
+        setCreating(true);
+        try {
+            const folders = await loadFolders();
+            const id = `folder_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+            const newFolder: GifFolder = {
+                id,
+                name: trimmed,
+                gifs: [],
+                createdAt: Date.now(),
+            };
+            folders[id] = newFolder;
+            await saveFolders(folders);
+            modalProps.onClose();
+            onCreated(id);
+        } finally {
+            setCreating(false);
+        }
     };
 
     return (
-        <ModalRoot {...modalProps} size="small">
+        <ModalRoot {...modalProps}>
             <ModalHeader>
-                <Text variant="heading-md/bold">Create GIF Folder</Text>
-                <ModalCloseButton />
+                <Text variant="heading-lg/semibold" style={{ color: "var(--header-primary)" }}>
+                    Create GIF Folder
+                </Text>
             </ModalHeader>
+
             <ModalContent>
-                <div style={{ padding: "12px 0", display: "flex", flexDirection: "column", gap: 12 }}>
-                    <div>
-                        <Text variant="text-sm/semibold" style={{ marginBottom: 6 }}>Color</Text>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                            {DEFAULT_COLORS.map(c => (
-                                <button
-                                    key={c}
-                                    onClick={() => setColor(c)}
-                                    style={{
-                                        width: 32, height: 32, borderRadius: "50%",
-                                        background: c, border: "none", cursor: "pointer",
-                                        boxShadow: color === c ? `0 0 0 3px white, 0 0 0 5px ${c}` : "none",
-                                        transition: "box-shadow 0.15s",
-                                    }}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                    <div>
-                        <Text variant="text-sm/semibold" style={{ marginBottom: 6 }}>Name</Text>
+                <div style={{ padding: "16px 0", display: "flex", flexDirection: "column", gap: 12 }}>
+                    <Forms.FormSection>
+                        <Forms.FormTitle style={{ color: "var(--header-secondary)" }}>
+                            Folder Name
+                        </Forms.FormTitle>
                         <TextInput
-                            placeholder="e.g. Reaction GIFs, Cat Memes…"
+                            placeholder="My Folder"
                             value={name}
-                            onChange={v => { setName(v); setError(null); }}
-                            maxLength={50}
+                            onChange={setName}
                             autoFocus
                         />
-                        {error && (
-                            <Text variant="text-xs/normal" style={{ color: "var(--text-danger)", marginTop: 4 }}>
-                                {error}
-                            </Text>
-                        )}
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 6, background: color }} />
-                        <Text variant="text-sm/semibold" style={{ color: "var(--header-primary)" }}>
-                            {name || "My Folder"}
+                    </Forms.FormSection>
+
+                    {error && (
+                        <Text variant="text-sm/normal" style={{ color: "var(--status-danger)" }}>
+                            {error}
                         </Text>
-                    </div>
+                    )}
                 </div>
             </ModalContent>
+
             <ModalFooter>
-                <Button onClick={handleCreate} color={Button.Colors.BRAND} disabled={saving}>
-                    {saving ? "Creating…" : "Create Folder"}
-                </Button>
-                <Button onClick={() => { onCancel(); modalProps.onClose(); }} color={Button.Colors.TRANSPARENT} style={{ marginLeft: 8 }}>
-                    Cancel
-                </Button>
+                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", width: "100%" }}>
+                    <Button
+                        look={Button.Looks.LINK}
+                        color={Button.Colors.PRIMARY}
+                        onClick={() => { modalProps.onClose(); onCancel(); }}
+                        style={{ color: "var(--text-muted)" }}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        color={Button.Colors.BRAND}
+                        disabled={creating}
+                        onClick={handleCreate}
+                    >
+                        {creating ? "Creating…" : "Create"}
+                    </Button>
+                </div>
             </ModalFooter>
         </ModalRoot>
     );
