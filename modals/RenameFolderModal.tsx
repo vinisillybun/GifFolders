@@ -1,4 +1,4 @@
-import { ModalRoot, ModalHeader, ModalContent, ModalFooter } from "@utils/modal";
+import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot } from "@utils/modal";
 import { Button, Forms, React, Text, TextInput, useState } from "@webpack/common";
 import { GifFolder } from "..";
 import { FolderManager } from "../FolderManager";
@@ -11,6 +11,7 @@ interface RenameFolderModalProps {
 
 export function RenameFolderModal({ modalProps, folder, onRenamed }: RenameFolderModalProps) {
     const [name, setName] = useState(folder.name);
+    const [color, setColor] = useState(folder.color ?? "#5865F2");
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
 
@@ -22,7 +23,7 @@ export function RenameFolderModal({ modalProps, folder, onRenamed }: RenameFolde
         }
         setSaving(true);
         try {
-            await FolderManager.renameFolder(folder.id, trimmed);
+            await FolderManager.renameFolder(folder.id, trimmed, color);
             modalProps.onClose();
             onRenamed();
         } finally {
@@ -33,23 +34,45 @@ export function RenameFolderModal({ modalProps, folder, onRenamed }: RenameFolde
     return (
         <ModalRoot {...modalProps}>
             <ModalHeader>
-                <Text variant="heading-lg/semibold" style={{ color: "var(--header-primary)" }}>
+                <Text variant="heading-lg/semibold" style={{ flex: 1 }}>
                     Rename Folder
                 </Text>
+                <ModalCloseButton onClick={modalProps.onClose} />
             </ModalHeader>
 
             <ModalContent>
                 <div style={{ padding: "16px 0", display: "flex", flexDirection: "column", gap: 12 }}>
                     <Forms.FormSection>
-                        <Forms.FormTitle style={{ color: "var(--header-secondary)" }}>
-                            Folder Name
-                        </Forms.FormTitle>
+                        <Forms.FormTitle>Folder Name</Forms.FormTitle>
                         <TextInput
                             placeholder={folder.name}
                             value={name}
                             onChange={setName}
                             autoFocus
                         />
+                    </Forms.FormSection>
+
+                    <Forms.FormSection>
+                        <Forms.FormTitle>Folder Color</Forms.FormTitle>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <input
+                                type="color"
+                                value={color}
+                                onChange={e => setColor(e.target.value)}
+                                style={{
+                                    width: 36,
+                                    height: 36,
+                                    border: "none",
+                                    borderRadius: 4,
+                                    cursor: "pointer",
+                                    background: "none",
+                                    padding: 0,
+                                }}
+                            />
+                            <Text variant="text-sm/normal" style={{ color: "var(--text-muted)" }}>
+                                {color}
+                            </Text>
+                        </div>
                     </Forms.FormSection>
 
                     {error && (
@@ -61,23 +84,20 @@ export function RenameFolderModal({ modalProps, folder, onRenamed }: RenameFolde
             </ModalContent>
 
             <ModalFooter>
-                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", width: "100%" }}>
-                    <Button
-                        look={Button.Looks.LINK}
-                        color={Button.Colors.PRIMARY}
-                        onClick={() => modalProps.onClose()}
-                        style={{ color: "var(--text-muted)" }}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        color={Button.Colors.BRAND}
-                        disabled={saving}
-                        onClick={handleSave}
-                    >
-                        {saving ? "Saving…" : "Save"}
-                    </Button>
-                </div>
+                <Button
+                    color={Button.Colors.BRAND}
+                    disabled={saving}
+                    onClick={handleSave}
+                >
+                    {saving ? "Saving…" : "Save"}
+                </Button>
+                <Button
+                    look={Button.Looks.LINK}
+                    color={Button.Colors.PRIMARY}
+                    onClick={() => modalProps.onClose()}
+                >
+                    Cancel
+                </Button>
             </ModalFooter>
         </ModalRoot>
     );
