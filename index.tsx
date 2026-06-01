@@ -37,6 +37,8 @@ export async function saveFolders(folders: FolderStore): Promise<void> {
 
 function isGifUrl(url: string): boolean {
     if (!url) return false;
+    // Explicitly exclude mp4/video URLs
+    if (/\.mp4($|\?)/i.test(url)) return false;
     return (
         /\.(gif|webp)($|\?)/i.test(url) ||
         url.includes("tenor.com") ||
@@ -55,7 +57,10 @@ function getGifUrlFromMessage(message: any): string | null {
     }
     if (message?.attachments?.length > 0) {
         for (const att of message.attachments) {
-            if (att.content_type?.includes("gif") || att.content_type?.includes("webp") || isGifUrl(att.url)) return att.url;
+            // Exclude mp4/video content types explicitly
+            const ct: string = att.content_type ?? "";
+            if (ct.includes("mp4") || ct.includes("video")) continue;
+            if ((ct.includes("gif") || ct.includes("webp")) || isGifUrl(att.url)) return att.url;
         }
     }
     if (message?.content && isGifUrl(message.content.trim())) {
@@ -91,6 +96,28 @@ const messageContextMenuPatch: NavContextMenuPatchCallback = (children, props) =
     }
 };
 
+// Right-click a GIF inside the GIF picker
+const gifPickerContextMenuPatch: NavContextMenuPatchCallback = (children, props) => {
+    const gif = props?.gif;
+    if (!gif) return;
+    const url: string = gif.url ?? gif.src ?? "";
+    if (!url) return;
+
+    children.push(
+        <Menu.MenuSeparator />,
+        <Menu.MenuItem
+            id="gif-folders-save-picker"
+            label="Save to GIF Folder"
+            action={() => FolderManager.openSaveModal({
+                url,
+                src: gif.src ?? url,
+                width: gif.width ?? 0,
+                height: gif.height ?? 0,
+            })}
+        />
+    );
+};
+
 export default definePlugin({
     name: "GifFolders",
     description: "Organize your GIFs into unlimited custom folders, no Discord favorites limit! :3",
@@ -108,10 +135,12 @@ export default definePlugin({
 
     start() {
         addContextMenuPatch("message", messageContextMenuPatch);
+        addContextMenuPatch("gif-picker-gif-context-menu", gifPickerContextMenuPatch);
     },
 
     stop() {
         removeContextMenuPatch("message", messageContextMenuPatch);
+        removeContextMenuPatch("gif-picker-gif-context-menu", gifPickerContextMenuPatch);
     },
 
     renderFavoritesTile() {
