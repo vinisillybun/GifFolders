@@ -16,7 +16,7 @@ Organize your GIFs into unlimited custom folders, stored locally in IndexedDB vi
 
 **Export / Import:** Backup your folders as JSON and restore them
 
-**Duplicate protection** Won't let you save the same GIF twice in one folder
+**Duplicate protection:** Won't let you save the same GIF twice in one folder
 
 ## Installation
 
