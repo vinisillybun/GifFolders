@@ -20,9 +20,6 @@ function GifTile({
 }) {
     const [hovered, setHovered] = useState(false);
 
-    // Use src for display; both .gif and .webp render fine in <img>
-    const previewSrc = gif.src || gif.url;
-
     return (
         <div
             className="gif-folder-tile"
@@ -38,7 +35,7 @@ function GifTile({
             }}
         >
             <img
-                src={previewSrc}
+                src={gif.src || gif.url}
                 alt=""
                 style={{
                     width: "100%",
@@ -124,41 +121,27 @@ const iconBtnStyle: React.CSSProperties = {
     opacity: 0.7,
 };
 
-/** Returns a random GIF from the folder, or undefined if the folder is empty. */
-function getRandomFolderPreview(folder: GifFolder): GifItem | undefined {
-    if (!folder.gifs.length) return undefined;
-    const idx = Math.floor(Math.random() * folder.gifs.length);
-    return folder.gifs[idx];
-}
-
 export function GifFoldersUI({ onGifClick }: { onGifClick?: (gif: GifItem) => void }) {
     const [folders, setFolders] = useState<Record<string, GifFolder>>({});
     const [search, setSearch] = useState("");
     const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
-
-    // Cache random preview picks per folder so they don't re-randomize on every render
+    // Stores a random preview URL per folder id, picked once on load
     const [folderPreviews, setFolderPreviews] = useState<Record<string, string>>({});
 
     const reload = useCallback(async () => {
         const data = await loadFolders();
         setFolders(data);
 
-        // Pick a random preview for any folder that doesn't have one cached yet
-        setFolderPreviews(prev => {
-            const next = { ...prev };
-            for (const folder of Object.values(data)) {
-                if (!next[folder.id] && folder.gifs.length > 0) {
-                    const pick = getRandomFolderPreview(folder);
-                    if (pick) next[folder.id] = pick.src || pick.url;
-                }
-                // If GIFs were added/removed, refresh the preview
-                if (folder.gifs.length === 0) {
-                    delete next[folder.id];
-                }
+        // Pick a random preview GIF for each folder
+        const previews: Record<string, string> = {};
+        for (const folder of Object.values(data)) {
+            if (folder.gifs.length > 0) {
+                const pick = folder.gifs[Math.floor(Math.random() * folder.gifs.length)];
+                previews[folder.id] = pick.src || pick.url;
             }
-            return next;
-        });
+        }
+        setFolderPreviews(previews);
 
         setLoading(false);
     }, []);
@@ -204,12 +187,6 @@ export function GifFoldersUI({ onGifClick }: { onGifClick?: (gif: GifItem) => vo
 
     const handleDeleteGif = async (folderId: string, gifUrl: string) => {
         await FolderManager.removeGifFromFolder(folderId, gifUrl);
-        // Invalidate cached preview so it picks a new random one
-        setFolderPreviews(prev => {
-            const next = { ...prev };
-            delete next[folderId];
-            return next;
-        });
         await reload();
     };
 
@@ -309,74 +286,63 @@ export function GifFoldersUI({ onGifClick }: { onGifClick?: (gif: GifItem) => vo
                 </Text>
             ) : (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-                    {folderList.map(f => {
-                        const isSelected = f.id === selectedFolderId;
-                        const previewSrc = folderPreviews[f.id];
-                        return (
-                            <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 2 }}>
-                                <button
-                                    onClick={() => setSelectedFolderId(isSelected ? null : f.id)}
-                                    style={{
-                                        position: "relative",
-                                        background: isSelected
-                                            ? (f.color ?? "var(--brand-experiment)")
-                                            : "var(--background-secondary)",
-                                        color: "var(--text-normal)",
-                                        border: "none",
-                                        borderRadius: 20,
-                                        padding: "4px 12px",
-                                        cursor: "pointer",
-                                        fontSize: 13,
-                                        overflow: "hidden",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 6,
-                                        minHeight: 32,
-                                    }}
-                                >
-                                    {/* Random GIF preview thumbnail inside the folder pill */}
-                                    {previewSrc && (
-                                        <img
-                                            src={previewSrc}
-                                            alt=""
-                                            style={{
-                                                width: 22,
-                                                height: 22,
-                                                objectFit: "cover",
-                                                borderRadius: "50%",
-                                                flexShrink: 0,
-                                            }}
-                                        />
-                                    )}
-                                    <span style={{ color: "var(--text-normal)" }}>
-                                        {f.name}
-                                    </span>
-                                    <span style={{ opacity: 0.7, color: "var(--text-muted)" }}>
-                                        ({f.gifs.length})
-                                    </span>
-                                </button>
-                                <button
-                                    onClick={() => handleColorChange(f.id)}
-                                    title="Change folder color"
-                                    style={{
-                                        background: "none",
-                                        border: "1px solid var(--background-modifier-accent)",
-                                        borderRadius: 4,
-                                        width: 24,
-                                        height: 24,
-                                        cursor: "pointer",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        padding: 0,
-                                        fontSize: 12,
-                                    }}
-                                >
-                                    🎨
-                                </button>
-                            </div>
-                        );
-                    })}
+                    {folderList.map(f => (
+                        <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                            <button
+                                onClick={() => setSelectedFolderId(f.id === selectedFolderId ? null : f.id)}
+                                style={{
+                                    background: f.id === selectedFolderId
+                                        ? (f.color ?? "var(--brand-experiment)")
+                                        : "var(--background-secondary)",
+                                    color: "var(--text-normal)",
+                                    border: "none",
+                                    borderRadius: 20,
+                                    padding: folderPreviews[f.id] ? "4px 12px 4px 4px" : "4px 12px",
+                                    cursor: "pointer",
+                                    fontSize: 13,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 6,
+                                }}
+                            >
+                                {folderPreviews[f.id] && (
+                                    <img
+                                        src={folderPreviews[f.id]}
+                                        alt=""
+                                        style={{
+                                            width: 22,
+                                            height: 22,
+                                            objectFit: "cover",
+                                            borderRadius: "50%",
+                                            flexShrink: 0,
+                                            display: "block",
+                                        }}
+                                    />
+                                )}
+                                <span>{f.name}</span>
+                                <span style={{ opacity: 0.7 }}>({f.gifs.length})</span>
+                            </button>
+                            <button
+                                onClick={() => handleColorChange(f.id)}
+                                title="Change folder color"
+                                style={{
+                                    background: "none",
+                                    border: "1px solid var(--background-modifier-accent)",
+                                    borderRadius: 4,
+                                    width: 24,
+                                    height: 24,
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    padding: 0,
+                                    fontSize: 12,
+                                }}
+                            >
+                                🎨
+                            </button>
+                        </div>
+                    ))}
                 </div>
             )}
 
