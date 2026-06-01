@@ -15,9 +15,12 @@ export function SaveToFolderModal({ modalProps, gif }: SaveToFolderModalProps) {
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
 
-    useEffect(() => {
-        loadFolders().then(setFolders);
-    }, []);
+    const reloadFolders = async () => {
+        const data = await loadFolders();
+        setFolders(data);
+    };
+
+    useEffect(() => { reloadFolders(); }, []);
 
     const folderList = Object.values(folders);
 
@@ -33,16 +36,16 @@ export function SaveToFolderModal({ modalProps, gif }: SaveToFolderModalProps) {
         }
     };
 
+    // Opens CreateFolderModal — just creates the folder, does NOT auto-save the GIF
     const handleNewFolder = () => {
         openModal(props => (
             <CreateFolderModal
                 modalProps={props}
                 onCreated={async id => {
-                    await FolderManager.addGifToFolder(id, gif);
-                    const updated = await loadFolders();
-                    setFolders(updated);
-                    setSaved(true);
-                    setTimeout(() => modalProps.onClose(), 800);
+                    // Refresh the folder list and auto-select the new folder so
+                    // the user can hit Save themselves
+                    await reloadFolders();
+                    setSelectedFolderId(id);
                 }}
                 onCancel={() => { }}
             />
@@ -59,7 +62,8 @@ export function SaveToFolderModal({ modalProps, gif }: SaveToFolderModalProps) {
             </ModalHeader>
 
             <ModalContent>
-                <div style={{ padding: "16px 0", display: "flex", flexDirection: "column", gap: 8 }}>
+                {/* Wrap in a div that forces Discord's text color down into plain <button> children */}
+                <div style={{ padding: "16px 0", display: "flex", flexDirection: "column", gap: 8, color: "var(--text-normal)" }}>
                     {/* GIF preview */}
                     <img
                         src={gif.src || gif.url}
@@ -75,7 +79,7 @@ export function SaveToFolderModal({ modalProps, gif }: SaveToFolderModalProps) {
 
                     {folderList.length === 0 ? (
                         <Text variant="text-sm/normal" style={{ color: "var(--text-muted)" }}>
-                            You have no folders yet. Create one below!
+                            You have no folders yet. Click "New Folder" below to create one!
                         </Text>
                     ) : (
                         <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 200, overflowY: "auto" }}>
@@ -96,7 +100,7 @@ export function SaveToFolderModal({ modalProps, gif }: SaveToFolderModalProps) {
                                         display: "flex",
                                         alignItems: "center",
                                         gap: 8,
-                                        color: "var(--text-normal)",
+                                        color: "inherit",
                                     }}
                                 >
                                     {f.name}
@@ -117,26 +121,29 @@ export function SaveToFolderModal({ modalProps, gif }: SaveToFolderModalProps) {
             </ModalContent>
 
             <ModalFooter>
-                <Button
-                    color={Button.Colors.BRAND}
-                    disabled={!selectedFolderId || saving || saved}
-                    onClick={handleSave}
-                >
-                    {saving ? "Saving…" : saved ? "Saved!" : "Save"}
-                </Button>
-                <Button
-                    color={Button.Colors.BRAND}
-                    onClick={handleNewFolder}
-                >
-                    New folder &amp; save
-                </Button>
-                <Button
-                    look={Button.Looks.LINK}
-                    color={Button.Colors.PRIMARY}
-                    onClick={() => modalProps.onClose()}
-                >
-                    Cancel
-                </Button>
+                {/* Explicit flex wrapper so buttons are spaced out regardless of ModalFooter's default layout */}
+                <div style={{ display: "flex", gap: 8, width: "100%", justifyContent: "flex-end" }}>
+                    <Button
+                        look={Button.Looks.LINK}
+                        color={Button.Colors.PRIMARY}
+                        onClick={() => modalProps.onClose()}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        color={Button.Colors.BRAND}
+                        onClick={handleNewFolder}
+                    >
+                        New Folder
+                    </Button>
+                    <Button
+                        color={Button.Colors.BRAND}
+                        disabled={!selectedFolderId || saving || saved}
+                        onClick={handleSave}
+                    >
+                        {saving ? "Saving…" : saved ? "Saved!" : "Save"}
+                    </Button>
+                </div>
             </ModalFooter>
         </ModalRoot>
     );
