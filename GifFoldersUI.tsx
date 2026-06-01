@@ -98,7 +98,16 @@ function GifBrowserModal({ folder, onClose, onSelectGIF, onReload }: {
                             <GifTile
                                 key={gif.url}
                                 gif={gif}
-                                onSend={() => { onGifSend?.(gif); onClose(); }}
+                                onSend={() => {
+                                    onSelectGIF?.({
+                                        url: gif.url,
+                                        src: gif.src,
+                                        width: gif.width,
+                                        height: gif.height,
+                                        format: "IMAGE",
+                                    });
+                                    onClose();
+                                }}
                                 onDelete={() => handleDelete(gif.url)}
                             />
                         ))}
