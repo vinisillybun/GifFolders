@@ -1,5 +1,5 @@
-import { openModal, ModalRoot, ModalHeader, ModalContent, ModalFooter } from "@utils/modal";
-import { Button, Forms, React, Text, useState, useEffect } from "@webpack/common";
+import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, openModal } from "@utils/modal";
+import { Button, React, Text, useState, useEffect } from "@webpack/common";
 import { FolderManager } from "../FolderManager";
 import { GifFolder, GifItem, loadFolders } from "..";
 import { CreateFolderModal } from "./CreateFolderModal";
@@ -52,9 +52,10 @@ export function SaveToFolderModal({ modalProps, gif }: SaveToFolderModalProps) {
     return (
         <ModalRoot {...modalProps}>
             <ModalHeader>
-                <Text variant="heading-lg/semibold" style={{ color: "var(--header-primary)" }}>
+                <Text variant="heading-lg/semibold" style={{ flex: 1 }}>
                     Save GIF to Folder
                 </Text>
+                <ModalCloseButton onClick={modalProps.onClose} />
             </ModalHeader>
 
             <ModalContent>
@@ -86,8 +87,7 @@ export function SaveToFolderModal({ modalProps, gif }: SaveToFolderModalProps) {
                                         background: selectedFolderId === f.id
                                             ? (f.color ?? "var(--brand-experiment)")
                                             : "var(--background-secondary)",
-                                        color: "var(--text-normal)",
-                                        border: "1px solid var(--background-modifier-accent)",
+                                        border: `1px solid ${selectedFolderId === f.id ? "transparent" : "var(--background-modifier-accent)"}`,
                                         borderRadius: 6,
                                         padding: "8px 12px",
                                         cursor: "pointer",
@@ -96,10 +96,11 @@ export function SaveToFolderModal({ modalProps, gif }: SaveToFolderModalProps) {
                                         display: "flex",
                                         alignItems: "center",
                                         gap: 8,
+                                        color: "var(--text-normal)",
                                     }}
                                 >
-                                    <span style={{ color: "var(--text-normal)" }}>{f.name}</span>
-                                    <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
+                                    {f.name}
+                                    <span style={{ opacity: 0.6, fontSize: 12 }}>
                                         ({f.gifs.length} GIFs)
                                     </span>
                                 </button>
@@ -116,31 +117,26 @@ export function SaveToFolderModal({ modalProps, gif }: SaveToFolderModalProps) {
             </ModalContent>
 
             <ModalFooter>
-                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", width: "100%" }}>
-                    <Button
-                        look={Button.Looks.LINK}
-                        color={Button.Colors.PRIMARY}
-                        onClick={handleNewFolder}
-                        style={{ color: "var(--text-normal)" }}
-                    >
-                        + New folder &amp; save
-                    </Button>
-                    <Button
-                        look={Button.Looks.LINK}
-                        color={Button.Colors.PRIMARY}
-                        onClick={() => modalProps.onClose()}
-                        style={{ color: "var(--text-muted)" }}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        color={Button.Colors.BRAND}
-                        disabled={!selectedFolderId || saving || saved}
-                        onClick={handleSave}
-                    >
-                        {saving ? "Saving…" : saved ? "Saved!" : "Save"}
-                    </Button>
-                </div>
+                <Button
+                    color={Button.Colors.BRAND}
+                    disabled={!selectedFolderId || saving || saved}
+                    onClick={handleSave}
+                >
+                    {saving ? "Saving…" : saved ? "Saved!" : "Save"}
+                </Button>
+                <Button
+                    color={Button.Colors.BRAND}
+                    onClick={handleNewFolder}
+                >
+                    New folder &amp; save
+                </Button>
+                <Button
+                    look={Button.Looks.LINK}
+                    color={Button.Colors.PRIMARY}
+                    onClick={() => modalProps.onClose()}
+                >
+                    Cancel
+                </Button>
             </ModalFooter>
         </ModalRoot>
     );
