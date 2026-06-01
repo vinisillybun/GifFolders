@@ -10,8 +10,6 @@ Organize your GIFs into unlimited custom folders, stored locally in IndexedDB vi
 
 **Unlimited GIFs per folder:** Stored locally, not on Discord's servers (Bypassing Discord's favorite limit!!1)
 
-**Custom icons:** | Pick an emoji or type your own for each folder
-
 **Search within folders:** Filter GIFs by URL inside any folder
 
 **Right-click to save:** Right-click any GIF in the picker and click on "Save to GIF Folder"
