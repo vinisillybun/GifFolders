@@ -1,11 +1,19 @@
+/*
+ * Vencord, a modification for Discord's desktop app
+ * Copyright (c) 2024 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import { addContextMenuPatch, findGroupChildrenByChildId, NavContextMenuPatchCallback, removeContextMenuPatch } from "@api/ContextMenu";
 import { DataStore } from "@api/index";
 import ErrorBoundary from "@components/ErrorBoundary";
 import definePlugin from "@utils/types";
 import { Menu, React } from "@webpack/common";
-import { openModal } from "@utils/modal";
+
 import { FolderManager } from "./FolderManager";
-import { GifFoldersUI } from "./GifFoldersUI";
+import { FolderTiles } from "./GifFoldersUI";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface GifItem {
     url: string;
@@ -14,22 +22,30 @@ export interface GifItem {
     height: number;
     addedAt: number;
 }
+
 export interface GifFolder {
     id: string;
     name: string;
-    color?: string;
+    color?: string; // hex color for the tile background, like Discord's blue Favorites tile
     gifs: GifItem[];
     createdAt: number;
 }
+
 export type FolderStore = Record<string, GifFolder>;
 
+// ─── DataStore ────────────────────────────────────────────────────────────────
+
 const STORE_KEY = "GifFolders_v1";
+
 export async function loadFolders(): Promise<FolderStore> {
     return (await DataStore.get<FolderStore>(STORE_KEY)) ?? {};
 }
+
 export async function saveFolders(folders: FolderStore): Promise<void> {
     await DataStore.set(STORE_KEY, folders);
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function isGifUrl(url: string): boolean {
     if (!url) return false;
@@ -41,6 +57,7 @@ function isGifUrl(url: string): boolean {
         url.includes("cdn.discordapp.com")
     );
 }
+
 function getGifUrlFromMessage(message: any): string | null {
     if (message?.embeds?.length > 0) {
         for (const embed of message.embeds) {
@@ -59,9 +76,12 @@ function getGifUrlFromMessage(message: any): string | null {
     return null;
 }
 
+// ─── Message context menu patch ───────────────────────────────────────────────
+
 const messageContextMenuPatch: NavContextMenuPatchCallback = (children, props) => {
     const gifUrl = getGifUrlFromMessage(props?.message);
     if (!gifUrl) return;
+
     const saveImageGroup = findGroupChildrenByChildId("save-image", children);
     const menuItem = (
         <Menu.MenuItem
@@ -75,13 +95,16 @@ const messageContextMenuPatch: NavContextMenuPatchCallback = (children, props) =
             })}
         />
     );
+
     if (saveImageGroup) {
-        const saveImageIndex = saveImageGroup.findIndex((c: any) => c?.props?.id === "save-image");
-        saveImageGroup.splice(saveImageIndex + 1, 0, menuItem);
+        const idx = saveImageGroup.findIndex((c: any) => c?.props?.id === "save-image");
+        saveImageGroup.splice(idx + 1, 0, menuItem);
     } else {
         children.push(<Menu.MenuSeparator />, menuItem);
     }
 };
+
+// ─── Plugin ───────────────────────────────────────────────────────────────────
 
 export default definePlugin({
     name: "GifFolders",
@@ -90,45 +113,41 @@ export default definePlugin({
 
     patches: [
         {
-            find: "getFavoriteGIFs",
+            // Module 622142 — GIF picker, class W (the categories/front page grid).
+            // We patch renderContent so when the front page is shown (resultType === null),
+            // we render our folder tiles ABOVE the normal category masonry grid.
+            // Anchor: "hideFavoritesTile" is unique to this component's props.
+            find: "hideFavoritesTile",
             replacement: {
-                match: /(?<=children:\s*\[)(?=.+?renderFavorite)/s,
-                replace: "$self.renderFolders(),"
-            }
-        }
+                // Match the render method's return of the front page component H
+                // Original: return (0,s.jsx)(H,{className:e,hideFavoritesTile:u,onSelectItem:this.handleSelectItem})
+                match: /return\s*\(0,\i\.jsx\)\((\i),\{className:\i,hideFavoritesTile:\i,onSelectItem:this\.handleSelectItem\}\)/,
+                replace: "return $self.renderWithFolders($1, arguments[0], this.handleSelectItem.bind(this))",
+            },
+        },
     ],
 
     start() {
         addContextMenuPatch("message", messageContextMenuPatch);
     },
+
     stop() {
         removeContextMenuPatch("message", messageContextMenuPatch);
     },
 
-    renderFavoritesTile() {
+    renderWithFolders(OriginalComponent: any, renderArgs: any, onSelectItem: any) {
+        const { className, hideFavoritesTile } = renderArgs;
         return (
-            <div
-                style={{
-                    background: "var(--background-floating)",
-                    borderRadius: 8,
-                    padding: "12px 16px",
-                    display: "flex",
-                    flexDirection: "column",
-                    height: "auto",
-                    position: "relative",
-                    overflow: "visible",
-                    marginBottom: 16,
-                    borderBottom: "2px solid var(--background-modifier-accent)",
-                }}
-            >
-                <ErrorBoundary>
-                    <GifFoldersUI />
+            <>
+                <ErrorBoundary noop>
+                    <FolderTiles onSelectItem={onSelectItem} />
                 </ErrorBoundary>
-            </div>
+                <OriginalComponent
+                    className={className}
+                    hideFavoritesTile={hideFavoritesTile}
+                    onSelectItem={onSelectItem}
+                />
+            </>
         );
     },
-
-    renderFolders() {
-        return <ErrorBoundary><GifFoldersUI /></ErrorBoundary>;
-    }
 });
