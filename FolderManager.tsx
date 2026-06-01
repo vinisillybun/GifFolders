@@ -1,5 +1,10 @@
+/*
+ * GifFolders – FolderManager.tsx
+ */
+
 import { openModal } from "@utils/modal";
 import { React } from "@webpack/common";
+
 import { GifItem, loadFolders, saveFolders } from ".";
 import { CreateFolderModal } from "./modals/CreateFolderModal";
 import { SaveToFolderModal } from "./modals/SaveToFolderModal";
@@ -9,13 +14,7 @@ export const FolderManager = {
         openModal(props => (
             <SaveToFolderModal
                 modalProps={props}
-                gif={{
-                    url: gif.url,
-                    src: gif.src ?? gif.url,
-                    width: gif.width ?? 0,
-                    height: gif.height ?? 0,
-                    addedAt: Date.now(),
-                }}
+                gif={{ url: gif.url, src: gif.src ?? gif.url, width: gif.width ?? 0, height: gif.height ?? 0, addedAt: Date.now() }}
             />
         ));
     },
@@ -36,9 +35,7 @@ export const FolderManager = {
         const folders = await loadFolders();
         const folder = folders[folderId];
         if (!folder) return;
-
         if (folder.gifs.some(g => g.url === gif.url)) return;
-
         folder.gifs.push(gif);
         await saveFolders(folders);
     },
@@ -47,7 +44,6 @@ export const FolderManager = {
         const folders = await loadFolders();
         const folder = folders[folderId];
         if (!folder) return;
-
         folder.gifs = folder.gifs.filter(g => g.url !== gifUrl);
         await saveFolders(folders);
     },
@@ -62,7 +58,6 @@ export const FolderManager = {
         const folders = await loadFolders();
         const folder = folders[folderId];
         if (!folder) return;
-
         folder.name = newName.trim() || folder.name;
         if (newColor !== undefined) folder.color = newColor;
         await saveFolders(folders);
@@ -77,9 +72,7 @@ export const FolderManager = {
         const incoming = JSON.parse(json);
         const existing = await loadFolders();
         for (const [id, folder] of Object.entries(incoming as any)) {
-            if (!existing[id]) {
-                existing[id] = folder as any;
-            }
+            if (!existing[id]) existing[id] = folder as any;
         }
         await saveFolders(existing);
     },
