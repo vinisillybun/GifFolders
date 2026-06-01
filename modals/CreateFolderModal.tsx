@@ -93,20 +93,22 @@ export function CreateFolderModal({ modalProps, onCreated, onCancel }: CreateFol
             </ModalContent>
 
             <ModalFooter>
-                <Button
-                    color={Button.Colors.BRAND}
-                    disabled={creating}
-                    onClick={handleCreate}
-                >
-                    {creating ? "Creating…" : "Create"}
-                </Button>
-                <Button
-                    look={Button.Looks.LINK}
-                    color={Button.Colors.PRIMARY}
-                    onClick={() => { modalProps.onClose(); onCancel(); }}
-                >
-                    Cancel
-                </Button>
+                <div style={{ display: "flex", gap: 8, width: "100%", justifyContent: "flex-end" }}>
+                    <Button
+                        look={Button.Looks.LINK}
+                        color={Button.Colors.PRIMARY}
+                        onClick={() => { modalProps.onClose(); onCancel(); }}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        color={Button.Colors.BRAND}
+                        disabled={creating}
+                        onClick={handleCreate}
+                    >
+                        {creating ? "Creating…" : "Create"}
+                    </Button>
+                </div>
             </ModalFooter>
         </ModalRoot>
     );
