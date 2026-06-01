@@ -26,7 +26,7 @@ export interface GifItem {
 export interface GifFolder {
     id: string;
     name: string;
-    color?: string; // hex color for the tile background, like Discord's blue Favorites tile
+    color?: string;
     gifs: GifItem[];
     createdAt: number;
 }
@@ -113,16 +113,20 @@ export default definePlugin({
 
     patches: [
         {
-            // Module 622142 — GIF picker, class W (the categories/front page grid).
-            // We patch renderContent so when the front page is shown (resultType === null),
-            // we render our folder tiles ABOVE the normal category masonry grid.
-            // Anchor: "hideFavoritesTile" is unique to this component's props.
-            find: "hideFavoritesTile",
+            // Module 622142, class z.
+            // renderContent() returns either the front page (H) or the gif grid (L.Ay).
+            // We patch the div wrapper that holds the content (className:q.Qs) to call
+            // our method instead of renderContent() directly, so we can prepend folder tiles.
+            //
+            // From source:
+            //   (0,s.jsx)("div",{className:q.Qs,children:this.renderContent()})
+            //
+            // We change renderContent to renderContentWithFolders which calls the original
+            // and wraps it when in FAVORITES mode.
+            find: "renderHeaderContent()",
             replacement: {
-                // Match the render method's return of the front page component H
-                // Original: return (0,s.jsx)(H,{className:e,hideFavoritesTile:u,onSelectItem:this.handleSelectItem})
-                match: /return\s*\(0,\i\.jsx\)\((\i),\{className:\i,hideFavoritesTile:\i,onSelectItem:this\.handleSelectItem\}\)/,
-                replace: "return $self.renderWithFolders($1, arguments[0], this.handleSelectItem.bind(this))",
+                match: /(\(0,\i\.jsx\)\("div",\{className:\i\.\i,children:)(this\.renderContent\(\))/,
+                replace: "$1$self.wrapContent($2,this)",
             },
         },
     ],
@@ -135,18 +139,17 @@ export default definePlugin({
         removeContextMenuPatch("message", messageContextMenuPatch);
     },
 
-    renderWithFolders(OriginalComponent: any, renderArgs: any, onSelectItem: any) {
-        const { className, hideFavoritesTile } = renderArgs;
+    wrapContent(content: React.ReactNode, instance: any) {
+        // Only inject when viewing favorites (resultType === "Favorites")
+        const isFavorites = instance?.state?.resultType === "Favorites";
+        if (!isFavorites) return content;
+
         return (
             <>
                 <ErrorBoundary noop>
-                    <FolderTiles onSelectItem={onSelectItem} />
+                    <FolderTiles />
                 </ErrorBoundary>
-                <OriginalComponent
-                    className={className}
-                    hideFavoritesTile={hideFavoritesTile}
-                    onSelectItem={onSelectItem}
-                />
+                {content}
             </>
         );
     },
