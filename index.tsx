@@ -144,10 +144,13 @@ export default definePlugin({
         const isFavorites = instance?.state?.resultType === "Favorites";
         if (!isFavorites) return content;
 
+        // onSelectGIF is the prop that actually sends the GIF to the chat input
+        const onSelectGIF = instance?.props?.onSelectGIF;
+
         return (
             <>
                 <ErrorBoundary noop>
-                    <FolderTiles />
+                    <FolderTiles onSelectGIF={onSelectGIF} />
                 </ErrorBoundary>
                 {content}
             </>
