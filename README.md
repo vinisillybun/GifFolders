@@ -6,15 +6,13 @@ Organize your GIFs into unlimited custom folders, stored locally in IndexedDB vi
 
 ## Features
 
-| Feature | Details |
-
-| **Unlimited folders** | You can reate as many as you want |
-| **Unlimited GIFs per folder** | Stored locally, not on Discord's servers (thus bypassing Discord's favorite limit) |
-| **Custom icons** | Pick an emoji or type your own for each folder |
-| **Search within folders** | Filter GIFs by URL inside any folder |
-| **Right-click to save** | Right-click any GIF in the picker → "Save to GIF Folder…" |
-| **Export / Import** | Backup your folders as JSON and restore them |
-| **Duplicate protection** | Won't save the same GIF twice in one folder |
+### **Unlimited folders:** You can reate as many as you want!
+### **Unlimited GIFs per folder:** Stored locally, not on Discord's servers (Bypassing Discord's favorite limit!!1)
+### **Custom icons:** | Pick an emoji or type your own for each folder
+### **Search within folders:** Filter GIFs by URL inside any folder
+### **Right-click to save:** Right-click any GIF in the picker and click on "Save to GIF Folder"
+### **Export / Import:** Backup your folders as JSON and restore them
+### **Duplicate protection** Won't let you save the same GIF twice in one folder
 
 ## Installation
 
