@@ -35,6 +35,7 @@ function GifTile({ gif, onSend, onDelete }: {
     onDelete: () => void;
 }) {
     const [hovered, setHovered] = useState(false);
+    const [imageError, setImageError] = useState(false);
     return (
         <div
             onMouseEnter={() => setHovered(true)}
@@ -46,11 +47,24 @@ function GifTile({ gif, onSend, onDelete }: {
                 background: "#2b2d31",
             }}
         >
-            <img
-                src={gif.src}
-                alt=""
-                style={{ width: "100%", height: 80, objectFit: "cover", display: "block" }}
-            />
+            {!imageError && (
+                <img
+                    src={gif.src}
+                    alt=""
+                    onError={() => setImageError(true)}
+                    style={{ width: "100%", height: 80, objectFit: "cover", display: "block" }}
+                />
+            )}
+            {imageError && (
+                <div style={{
+                    width: "100%", height: 80,
+                    background: "#3f4147",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#949ba4", fontSize: 11, padding: 8, textAlign: "center",
+                }}>
+                    Failed to load
+                </div>
+            )}
             {hovered && (
                 <button
                     onClick={e => { e.stopPropagation(); onDelete(); }}
@@ -235,6 +249,7 @@ function ManageFoldersModalInner({ folders, modalProps, onReload }: {
 
 function FolderTile({ folder, onClick }: { folder: GifFolder; onClick: () => void; }) {
     const [hovered, setHovered] = useState(false);
+    const [imageError, setImageError] = useState(false);
     const color = folder.color ?? DEFAULT_COLORS[0];
     const previewGif = folder.gifs[folder.gifs.length - 1];
 
@@ -252,10 +267,11 @@ function FolderTile({ folder, onClick }: { folder: GifFolder; onClick: () => voi
                 filter: hovered ? "brightness(1.15)" : "brightness(1)",
             }}
         >
-            {previewGif && (
+            {previewGif && !imageError && (
                 <img
                     src={previewGif.src}
                     alt=""
+                    onError={() => setImageError(true)}
                     style={{
                         position: "absolute", inset: 0,
                         width: "100%", height: "100%",

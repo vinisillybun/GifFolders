@@ -12,6 +12,7 @@ export function SaveToFolderModal({ modalProps, gif }: Props) {
     const [folders, setFolders] = useState<GifFolder[]>([]);
     const [saving, setSaving] = useState(false);
     const [savedTo, setSavedTo] = useState<string | null>(null);
+    const [imageError, setImageError] = useState(false);
 
     useEffect(() => {
         loadFolders().then(f => setFolders(Object.values(f)));
@@ -42,18 +43,33 @@ export function SaveToFolderModal({ modalProps, gif }: Props) {
             </ModalHeader>
             <ModalContent>
                 <div style={{ padding: "12px 0" }}>
-                    <img
-                        src={gif.src}
-                        alt=""
-                        style={{
+                    {!imageError ? (
+                        <img
+                            src={gif.src}
+                            alt=""
+                            onError={() => setImageError(true)}
+                            style={{
+                                width: "100%",
+                                maxHeight: 120,
+                                objectFit: "contain",
+                                borderRadius: 4,
+                                marginBottom: 12,
+                                background: "var(--background-secondary)",
+                            }}
+                        />
+                    ) : (
+                        <div style={{
                             width: "100%",
-                            maxHeight: 120,
-                            objectFit: "contain",
+                            height: 120,
+                            background: "var(--background-secondary)",
                             borderRadius: 4,
                             marginBottom: 12,
-                            background: "var(--background-secondary)",
-                        }}
-                    />
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            color: "var(--text-muted)", fontSize: 13,
+                        }}>
+                            Failed to load preview
+                        </div>
+                    )}
                     {folders.length === 0 ? (
                         <Text
                             variant="text-sm/normal"

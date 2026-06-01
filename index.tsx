@@ -50,11 +50,13 @@ export async function saveFolders(folders: FolderStore): Promise<void> {
 function isGifUrl(url: string): boolean {
     if (!url) return false;
     return (
-        /\.gif($|\?)/i.test(url) ||
+        /\.(gif|webp|mp4|png|jpg|jpeg)($|\?)/i.test(url) ||
         url.includes("tenor.com") ||
         url.includes("giphy.com") ||
         url.includes("media.discordapp") ||
-        url.includes("cdn.discordapp.com")
+        url.includes("cdn.discordapp.com") ||
+        url.includes("media.tenor.com") ||
+        url.includes("media.giphy.com")
     );
 }
 
