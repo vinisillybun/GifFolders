@@ -75,10 +75,12 @@ function FolderHeader({
     folder,
     onRename,
     onDelete,
+    onColorChange,
 }: {
     folder: GifFolder;
     onRename: () => void;
     onDelete: () => void;
+    onColorChange: () => void;
 }) {
     return (
         <div
@@ -91,7 +93,6 @@ function FolderHeader({
                 marginBottom: 6,
             }}
         >
-            <span style={{ fontSize: 16 }}>{folder.emoji ?? "📁"}</span>
             <Text
                 variant="text-sm/semibold"
                 style={{ flex: 1, color: "var(--header-primary)" }}
@@ -108,6 +109,11 @@ function FolderHeader({
                 title="Rename folder"
                 style={iconBtnStyle}
             >✏️</button>
+            <button
+                onClick={onColorChange}
+                title="Change color"
+                style={iconBtnStyle}
+            >🎨</button>
             <button
                 onClick={onDelete}
                 title="Delete folder"
@@ -182,6 +188,24 @@ export function GifFoldersUI({ onGifClick }: { onGifClick?: (gif: GifItem) => vo
         await reload();
     };
 
+    const handleColorChange = (folderId: string) => {
+        const folder = folders[folderId];
+        if (!folder) return;
+        
+        const input = document.createElement("input");
+        input.type = "color";
+        input.value = folder.color ?? "#5865F2";
+        input.onchange = async () => {
+            const folders = await loadFolders();
+            if (folders[folderId]) {
+                folders[folderId].color = input.value;
+                await saveFolders(folders);
+                await reload();
+            }
+        };
+        input.click();
+    };
+
     const handleSend = (gif: GifItem) => {
         onGifClick?.(gif);
     };
@@ -215,8 +239,8 @@ export function GifFoldersUI({ onGifClick }: { onGifClick?: (gif: GifItem) => vo
     if (loading) return <Text>Loading folders…</Text>;
 
     return (
-        <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 8 }}>
-            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <div style={{ display: "flex", flexDirection: "column", width: "100%", gap: 12 }}>
+            <div style={{ display: "flex", gap: 6, alignItems: "center", paddingBottom: 12 }}>
                 <Text variant="heading-sm/bold" style={{ flex: 1, color: "var(--header-primary)" }}>
                     📂 GIF Folders
                 </Text>
@@ -261,27 +285,47 @@ export function GifFoldersUI({ onGifClick }: { onGifClick?: (gif: GifItem) => vo
                     Right-click any GIF to save it to a folder.
                 </Text>
             ) : (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
                     {folderList.map(f => (
-                        <button
-                            key={f.id}
-                            onClick={() => setSelectedFolderId(f.id === selectedFolderId ? null : f.id)}
-                            style={{
-                                background: f.id === selectedFolderId
-                                    ? "var(--brand-experiment)"
-                                    : "var(--background-secondary)",
-                                color: f.id === selectedFolderId
-                                    ? "var(--white-500)"
-                                    : "var(--text-normal)",
-                                border: "none",
-                                borderRadius: 20,
-                                padding: "4px 12px",
-                                cursor: "pointer",
-                                fontSize: 13,
-                            }}
-                        >
-                            {f.emoji ?? "📁"} {f.name} <span style={{ opacity: 0.7 }}>({f.gifs.length})</span>
-                        </button>
+                        <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                            <button
+                                onClick={() => setSelectedFolderId(f.id === selectedFolderId ? null : f.id)}
+                                style={{
+                                    background: f.id === selectedFolderId
+                                        ? (f.color ?? "var(--brand-experiment)")
+                                        : "var(--background-secondary)",
+                                    color: f.id === selectedFolderId
+                                        ? "var(--white-500)"
+                                        : "var(--text-normal)",
+                                    border: "none",
+                                    borderRadius: 20,
+                                    padding: "4px 12px",
+                                    cursor: "pointer",
+                                    fontSize: 13,
+                                }}
+                            >
+                                {f.name} <span style={{ opacity: 0.7 }}>({f.gifs.length})</span>
+                            </button>
+                            <button
+                                onClick={() => handleColorChange(f.id)}
+                                title="Change folder color"
+                                style={{
+                                    background: "none",
+                                    border: "1px solid var(--background-modifier-accent)",
+                                    borderRadius: 4,
+                                    width: 24,
+                                    height: 24,
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    padding: 0,
+                                    fontSize: 12,
+                                }}
+                            >
+                                🎨
+                            </button>
+                        </div>
                     ))}
                 </div>
             )}
@@ -292,6 +336,7 @@ export function GifFoldersUI({ onGifClick }: { onGifClick?: (gif: GifItem) => vo
                         folder={selectedFolder}
                         onRename={() => handleRenameFolder(selectedFolder.id)}
                         onDelete={() => handleDeleteFolder(selectedFolder.id)}
+                        onColorChange={() => handleColorChange(selectedFolder.id)}
                     />
                     <TextInput
                         placeholder="Search GIFs in this folder…"

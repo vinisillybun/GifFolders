@@ -11,13 +11,12 @@ interface Props {
 
 export function RenameFolderModal({ modalProps, folder, onRenamed }: Props) {
     const [name, setName] = useState(folder.name);
-    const [emoji, setEmoji] = useState(folder.emoji ?? "📁");
-    const [customEmoji, setCustomEmoji] = useState("");
+    const [color, setColor] = useState(folder.color ?? "#5865F2");
     const [saving, setSaving] = useState(false);
 
     const handleSave = async () => {
         setSaving(true);
-        await FolderManager.renameFolder(folder.id, name, customEmoji.trim() || emoji);
+        await FolderManager.renameFolder(folder.id, name, color);
         onRenamed();
         modalProps.onClose();
     };
@@ -31,16 +30,6 @@ export function RenameFolderModal({ modalProps, folder, onRenamed }: Props) {
             <ModalContent>
                 <div style={{ padding: "12px 0", display: "flex", flexDirection: "column", gap: 12 }}>
                     <div>
-                        <Text variant="text-sm/semibold" style={{ marginBottom: 6 }}>Icon</Text>
-                        <TextInput
-                            placeholder="Type an emoji or symbol…"
-                            value={customEmoji}
-                            onChange={v => setCustomEmoji(v)}
-                            maxLength={4}
-                        />
-                    </div>
-
-                    <div>
                         <Text variant="text-sm/semibold" style={{ marginBottom: 6 }}>Name</Text>
                         <TextInput
                             value={name}
@@ -48,6 +37,27 @@ export function RenameFolderModal({ modalProps, folder, onRenamed }: Props) {
                             maxLength={50}
                             autoFocus
                         />
+                    </div>
+
+                    <div>
+                        <Text variant="text-sm/semibold" style={{ marginBottom: 6 }}>Color</Text>
+                        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            <input
+                                type="color"
+                                value={color}
+                                onChange={e => setColor(e.currentTarget.value)}
+                                style={{
+                                    width: 50,
+                                    height: 40,
+                                    border: "1px solid var(--background-modifier-accent)",
+                                    borderRadius: 4,
+                                    cursor: "pointer",
+                                }}
+                            />
+                            <Text variant="text-sm/normal" style={{ color: "var(--text-muted)" }}>
+                                {color}
+                            </Text>
+                        </div>
                     </div>
                 </div>
             </ModalContent>

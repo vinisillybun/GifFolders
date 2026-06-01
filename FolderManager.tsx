@@ -58,13 +58,13 @@ export const FolderManager = {
         await saveFolders(folders);
     },
 
-    async renameFolder(folderId: string, newName: string, newEmoji?: string): Promise<void> {
+    async renameFolder(folderId: string, newName: string, newColor?: string): Promise<void> {
         const folders = await loadFolders();
         const folder = folders[folderId];
         if (!folder) return;
 
         folder.name = newName.trim() || folder.name;
-        if (newEmoji !== undefined) folder.emoji = newEmoji;
+        if (newColor !== undefined) folder.color = newColor;
         await saveFolders(folders);
     },
 

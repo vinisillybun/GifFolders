@@ -17,7 +17,7 @@ export interface GifItem {
 export interface GifFolder {
     id: string;
     name: string;
-    emoji?: string;
+    color?: string;
     gifs: GifItem[];
     createdAt: number;
 }
@@ -83,33 +83,6 @@ const messageContextMenuPatch: NavContextMenuPatchCallback = (children, props) =
     }
 };
 
-function openFolderBrowser() {
-    openModal(props => (
-        <div
-            style={{
-                background: "var(--background-floating)",
-                borderRadius: 8,
-                padding: 16,
-                width: 480,
-                maxHeight: 600,
-                display: "flex",
-                flexDirection: "column",
-                boxShadow: "var(--elevation-high)",
-            }}
-        >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <span style={{ fontWeight: 700, fontSize: 16, color: "var(--header-primary)" }}>📂 GIF Folders</span>
-                <button onClick={props.onClose} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 18 }}>✕</button>
-            </div>
-            <div style={{ flex: 1, overflowY: "auto" }}>
-                <ErrorBoundary>
-                    <GifFoldersUI />
-                </ErrorBoundary>
-            </div>
-        </div>
-    ));
-}
-
 export default definePlugin({
     name: "GifFolders",
     description: "Organize your GIFs into unlimited custom folders, no Discord favorites limit! :3",
@@ -119,8 +92,8 @@ export default definePlugin({
         {
             find: "getFavoriteGIFs",
             replacement: {
-                match: /(?<=children:\s*\[)(?=.{50,300}Favorites)/,
-                replace: "$self.renderFavoritesTile(),"
+                match: /(?<=children:\s*\[)(?=.+?renderFavorite)/s,
+                replace: "$self.renderFolders(),"
             }
         }
     ],
@@ -135,25 +108,27 @@ export default definePlugin({
     renderFavoritesTile() {
         return (
             <div
-                onClick={openFolderBrowser}
                 style={{
-                    background: "var(--brand-experiment)",
+                    background: "var(--background-floating)",
                     borderRadius: 8,
                     padding: "12px 16px",
-                    cursor: "pointer",
                     display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 16,
-                    fontWeight: 600,
-                    color: "white",
-                    height: 90,
+                    flexDirection: "column",
+                    height: "auto",
                     position: "relative",
-                    overflow: "hidden",
+                    overflow: "visible",
+                    marginBottom: 16,
+                    borderBottom: "2px solid var(--background-modifier-accent)",
                 }}
             >
-                📂 GIF Folders
+                <ErrorBoundary>
+                    <GifFoldersUI />
+                </ErrorBoundary>
             </div>
         );
+    },
+
+    renderFolders() {
+        return <ErrorBoundary><GifFoldersUI /></ErrorBoundary>;
     }
 });

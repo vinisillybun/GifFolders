@@ -14,8 +14,6 @@ interface Props {
 
 export function CreateFolderModal({ modalProps, onCreated, onCancel }: Props) {
     const [name, setName] = useState("");
-    const [emoji, setEmoji] = useState("📁");
-    const [customEmoji, setCustomEmoji] = useState("");
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +35,6 @@ export function CreateFolderModal({ modalProps, onCreated, onCancel }: Props) {
         const newFolder: GifFolder = {
             id,
             name: trimmed,
-            emoji: (customEmoji.trim() || emoji),
             gifs: [],
             createdAt: Date.now(),
         };
@@ -57,16 +54,6 @@ export function CreateFolderModal({ modalProps, onCreated, onCancel }: Props) {
             <ModalContent>
                 <div style={{ padding: "12px 0", display: "flex", flexDirection: "column", gap: 12 }}>
                     <div>
-                        <Text variant="text-sm/semibold" style={{ marginBottom: 6 }}>Icon</Text>
-                        <TextInput
-                            placeholder="Type an emoji or symbol…"
-                            value={customEmoji}
-                            onChange={v => setCustomEmoji(v)}
-                            maxLength={4}
-                        />
-                    </div>
-
-                    <div>
                         <Text variant="text-sm/semibold" style={{ marginBottom: 6 }}>Name</Text>
                         <TextInput
                             placeholder="e.g. Reaction GIFs, Cat Memes…"
@@ -83,14 +70,6 @@ export function CreateFolderModal({ modalProps, onCreated, onCancel }: Props) {
                                 {error}
                             </Text>
                         )}
-                    </div>
-
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text-muted)" }}>
-                        <Text variant="text-sm/normal">Preview: </Text>
-                        <span style={{ fontSize: 18 }}>{customEmoji || emoji}</span>
-                        <Text variant="text-sm/semibold" style={{ color: "var(--header-primary)" }}>
-                            {name || "My Folder"}
-                        </Text>
                     </div>
                 </div>
             </ModalContent>

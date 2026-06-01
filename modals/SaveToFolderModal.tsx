@@ -87,7 +87,6 @@ export function SaveToFolderModal({ modalProps, gif }: Props) {
                                             textAlign: "left",
                                         }}
                                     >
-                                        <span style={{ fontSize: 18 }}>{f.emoji ?? "📁"}</span>
                                         <span style={{ flex: 1, fontWeight: 500 }}>{f.name}</span>
                                         <span style={{ color: "var(--text-muted)", fontSize: 12 }}>
                                             {alreadySaved ? "Already saved" : `${f.gifs.length} GIFs`}
