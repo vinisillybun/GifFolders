@@ -28,10 +28,10 @@ const DEFAULT_COLORS = [
 
 // ─── GIF browser modal (shown when clicking a folder tile) ───────────────────
 
-function GifBrowserModal({ folder, onClose, onGifSend, onReload }: {
+function GifBrowserModal({ folder, onClose, onSelectGIF, onReload }: {
     folder: GifFolder;
     onClose: () => void;
-    onGifSend?: (gif: GifItem) => void;
+    onSelectGIF?: (gif: any) => void;
     onReload: () => void;
 }) {
     const [search, setSearch] = useState("");
@@ -366,7 +366,7 @@ function ManageFoldersModal({ folders, onClose, onReload }: {
 
 // ─── Main export: FolderTiles (pinned above Discord's favorites grid) ─────────
 
-export function FolderTiles({ onSelectItem }: { onSelectItem?: (type: any, name: string) => void; }) {
+export function FolderTiles({ onSelectItem, onSelectGIF }: { onSelectItem?: (type: any, name: string) => void; onSelectGIF?: (gif: any) => void; }) {
     const [folders, setFolders] = useState<GifFolder[]>([]);
     const [loading, setLoading] = useState(true);
     const [browserFolder, setBrowserFolder] = useState<GifFolder | null>(null);
@@ -444,6 +444,7 @@ export function FolderTiles({ onSelectItem }: { onSelectItem?: (type: any, name:
                         <GifBrowserModal
                             folder={browserFolder}
                             onClose={() => setBrowserFolder(null)}
+                            onSelectGIF={onSelectGIF}
                             onReload={reload}
                         />
                     </ErrorBoundary>
