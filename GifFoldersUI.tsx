@@ -4,7 +4,7 @@
 
 import ErrorBoundary from "@components/ErrorBoundary";
 import { openModal, ModalRoot, ModalHeader, ModalContent, ModalFooter, ModalCloseButton } from "@utils/modal";
-import { Button, React, Text, TextInput, Tooltip, useState, useEffect, useCallback } from "@webpack/common";
+import { Button, React, Text, TextInput, Tooltip, useState, useEffect, useCallback, useMemo } from "@webpack/common";
 
 import { FolderManager } from "./FolderManager";
 import { GifFolder, GifItem, loadFolders, saveFolders } from ".";
@@ -29,12 +29,20 @@ const TEXT_MUTED = "#949ba4";
 
 // ─── Individual GIF tile ──────────────────────────────────────────────────────
 
+/** Returns the best preview URL for a GIF item, trying src then url. */
+function getPreviewSrc(gif: GifItem): string {
+    return gif.src || gif.url || "";
+}
+
 function GifTile({ gif, onSend, onDelete }: {
     gif: GifItem;
     onSend: () => void;
     onDelete: () => void;
 }) {
     const [hovered, setHovered] = useState(false);
+    // Try src first, fall back to url if src fails to load
+    const [imgSrc, setImgSrc] = useState(getPreviewSrc(gif));
+
     return (
         <div
             onMouseEnter={() => setHovered(true)}
@@ -47,9 +55,13 @@ function GifTile({ gif, onSend, onDelete }: {
             }}
         >
             <img
-                src={gif.src || gif.url}
+                src={imgSrc}
                 alt=""
                 style={{ width: "100%", height: 80, objectFit: "cover", display: "block" }}
+                onError={() => {
+                    // If src failed, try url; if url also fails, show nothing
+                    if (imgSrc !== gif.url && gif.url) setImgSrc(gif.url);
+                }}
             />
             {hovered && (
                 <button
@@ -236,7 +248,21 @@ function ManageFoldersModalInner({ folders, modalProps, onReload }: {
 function FolderTile({ folder, onClick }: { folder: GifFolder; onClick: () => void; }) {
     const [hovered, setHovered] = useState(false);
     const color = folder.color ?? DEFAULT_COLORS[0];
-    const previewGif = folder.gifs.length > 0 ? folder.gifs[Math.floor(Math.random() * folder.gifs.length)] : undefined;
+
+    // Pick a random preview once per folder id+length combo — stable across re-renders
+    const previewGif = useMemo(() => {
+        if (folder.gifs.length === 0) return undefined;
+        return folder.gifs[Math.floor(Math.random() * folder.gifs.length)];
+    }, [folder.id, folder.gifs.length]);
+
+    const [previewSrc, setPreviewSrc] = useState(
+        previewGif ? getPreviewSrc(previewGif) : ""
+    );
+
+    // Update preview src whenever the picked gif changes
+    useEffect(() => {
+        if (previewGif) setPreviewSrc(getPreviewSrc(previewGif));
+    }, [previewGif]);
 
     return (
         <div
@@ -252,15 +278,23 @@ function FolderTile({ folder, onClick }: { folder: GifFolder; onClick: () => voi
                 filter: hovered ? "brightness(1.15)" : "brightness(1)",
             }}
         >
-            {previewGif && (
+            {previewSrc && (
                 <img
-                    src={previewGif.src || previewGif.url}
+                    src={previewSrc}
                     alt=""
                     style={{
                         position: "absolute", inset: 0,
                         width: "100%", height: "100%",
                         objectFit: "cover", opacity: 0.35,
                         filter: "blur(1px)", pointerEvents: "none",
+                    }}
+                    onError={() => {
+                        // If src failed, try the raw url as fallback
+                        if (previewGif && previewSrc !== previewGif.url && previewGif.url) {
+                            setPreviewSrc(previewGif.url);
+                        } else {
+                            setPreviewSrc(""); // hide broken img
+                        }
                     }}
                 />
             )}
