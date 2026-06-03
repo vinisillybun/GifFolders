@@ -290,11 +290,11 @@ export function GifFoldersUI({ onGifClick }: { onGifClick?: (gif: GifItem) => vo
                         <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 2 }}>
                             <button
                                 onClick={() => setSelectedFolderId(f.id === selectedFolderId ? null : f.id)}
+                                className={f.id === selectedFolderId ? "gif-folder-btn gif-folder-btn-selected" : "gif-folder-btn"}
                                 style={{
                                     background: f.id === selectedFolderId
                                         ? (f.color ?? "var(--brand-experiment)")
                                         : "var(--background-secondary)",
-                                    color: "var(--text-normal)",
                                     border: "none",
                                     borderRadius: 20,
                                     padding: folderPreviews[f.id] ? "4px 12px 4px 4px" : "4px 12px",
