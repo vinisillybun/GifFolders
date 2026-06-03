@@ -86,6 +86,7 @@ export function SaveToFolderModal({ modalProps, gif }: SaveToFolderModalProps) {
                                     <button
                                         key={f.id}
                                         onClick={() => setSelectedFolderId(f.id)}
+                                        className={isSelected ? "gif-folder-modal-item gif-folder-modal-item-selected" : "gif-folder-modal-item"}
                                         style={{
                                             background: isSelected
                                                 ? (f.color ?? "var(--brand-experiment)")
@@ -99,8 +100,6 @@ export function SaveToFolderModal({ modalProps, gif }: SaveToFolderModalProps) {
                                             display: "flex",
                                             alignItems: "center",
                                             gap: 8,
-                                            // White text on colored bg, Discord normal text on dark bg
-                                            color: isSelected ? "#ffffff" : "var(--text-normal)",
                                         }}
                                     >
                                         <span>{f.name}</span>
