@@ -51,7 +51,7 @@ function isGifUrl(url: string): boolean {
     if (!url) return false;
     if (/\.mp4($|\?)/i.test(url)) return false;
     return (
-        /\.(gif|webp)($|\?)/i.test(url) ||
+        /\.(gif|webp|jpg|jpeg|png)($|\?)/i.test(url) ||
         url.includes("tenor.com") ||
         url.includes("giphy.com") ||
         url.includes("media.discordapp") ||
