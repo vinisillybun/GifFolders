@@ -12,3 +12,22 @@
     pointer-events: none;
     user-select: none;
 }
+
+/* Fix black text on folder buttons — Discord's UA stylesheet resets button color */
+.gif-folder-btn {
+    color: var(--interactive-normal) !important;
+}
+
+/* Selected folder button uses white text on the colored background */
+.gif-folder-btn-selected {
+    color: #ffffff !important;
+}
+
+/* Fix black text inside Save GIF to Folder modal folder list */
+.gif-folder-modal-item {
+    color: var(--text-normal) !important;
+}
+
+.gif-folder-modal-item-selected {
+    color: #ffffff !important;
+}
