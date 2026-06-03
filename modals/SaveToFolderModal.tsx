@@ -1,146 +1,127 @@
-import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot, openModal } from "@utils/modal";
+import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot } from "@utils/modal";
 import { Button, React, Text, useState, useEffect } from "@webpack/common";
 import { FolderManager } from "../FolderManager";
 import { GifFolder, GifItem, loadFolders } from "..";
-import { CreateFolderModal } from "./CreateFolderModal";
 
-interface SaveToFolderModalProps {
+interface Props {
     modalProps: any;
     gif: GifItem;
 }
 
-export function SaveToFolderModal({ modalProps, gif }: SaveToFolderModalProps) {
-    const [folders, setFolders] = useState<Record<string, GifFolder>>({});
+export function SaveToFolderModal({ modalProps, gif }: Props) {
+    const [folders, setFolders] = useState<GifFolder[]>([]);
     const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
-    const [saved, setSaved] = useState(false);
+    const [savedTo, setSavedTo] = useState<string | null>(null);
 
-    const reloadFolders = async () => {
-        const data = await loadFolders();
-        setFolders(data);
+    useEffect(() => {
+        loadFolders().then(f => setFolders(Object.values(f)));
+    }, []);
+
+    const saveToFolder = async (folderId: string) => {
+        setSaving(true);
+        await FolderManager.addGifToFolder(folderId, gif);
+        setSavedTo(folderId);
+        setSaving(false);
+        setTimeout(() => modalProps.onClose(), 700);
     };
 
-    useEffect(() => { reloadFolders(); }, []);
-
-    const folderList = Object.values(folders);
-
-    const handleSave = async () => {
-        if (!selectedFolderId) return;
-        setSaving(true);
-        try {
-            await FolderManager.addGifToFolder(selectedFolderId, gif);
-            setSaved(true);
-            setTimeout(() => modalProps.onClose(), 800);
-        } finally {
-            setSaving(false);
+    const handleNewFolder = async () => {
+        const id = await FolderManager.openCreateModal();
+        if (id) {
+            const updated = await loadFolders();
+            setFolders(Object.values(updated));
         }
     };
 
-    // Opens CreateFolderModal — just creates the folder, does NOT auto-save the GIF
-    const handleNewFolder = () => {
-        openModal(props => (
-            <CreateFolderModal
-                modalProps={props}
-                onCreated={async id => {
-                    await reloadFolders();
-                    setSelectedFolderId(id);
-                }}
-                onCancel={() => { }}
-            />
-        ));
-    };
-
     return (
-        <ModalRoot {...modalProps}>
+        <ModalRoot {...modalProps} size="small">
             <ModalHeader>
-                <Text variant="heading-lg/semibold" style={{ flex: 1 }}>
-                    Save GIF to Folder
-                </Text>
-                <ModalCloseButton onClick={modalProps.onClose} />
+                <Text variant="heading-md/bold">Save GIF to folder</Text>
+                <ModalCloseButton />
             </ModalHeader>
-
             <ModalContent>
-                <div style={{ padding: "16px 0", display: "flex", flexDirection: "column", gap: 8 }}>
-                    {/* GIF preview */}
+                <div style={{ padding: "12px 0" }}>
                     <img
-                        src={gif.src || gif.url}
+                        src={gif.src}
                         alt=""
                         style={{
                             width: "100%",
                             maxHeight: 120,
                             objectFit: "contain",
                             borderRadius: 4,
-                            marginBottom: 8,
+                            marginBottom: 12,
+                            background: "var(--background-secondary)",
                         }}
                     />
-
-                    {folderList.length === 0 ? (
-                        <Text variant="text-sm/normal" style={{ color: "var(--text-muted)" }}>
-                            You have no folders yet. Click "New Folder" below to create one!
+                    {folders.length === 0 ? (
+                        <Text
+                            variant="text-sm/normal"
+                            style={{ color: "var(--text-muted)", textAlign: "center", marginBottom: 10 }}
+                        >
+                            You don't have any folders yet.
                         </Text>
                     ) : (
-                        <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 200, overflowY: "auto" }}>
-                            {folderList.map(f => {
-                                const isSelected = selectedFolderId === f.id;
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                            {folders.map(f => {
+                                const alreadySaved = f.gifs.some(g => g.url === gif.url);
+                                const wasSavedNow = savedTo === f.id;
                                 return (
                                     <button
                                         key={f.id}
-                                        onClick={() => setSelectedFolderId(f.id)}
-                                        className={isSelected ? "gif-folder-modal-item gif-folder-modal-item-selected" : "gif-folder-modal-item"}
+                                        disabled={saving || alreadySaved}
+                                        onClick={() => !alreadySaved && setSelectedFolderId(f.id)}
                                         style={{
-                                            background: isSelected
-                                                ? (f.color ?? "var(--brand-experiment)")
-                                                : "var(--background-secondary)",
-                                            border: `1px solid ${isSelected ? "transparent" : "var(--background-modifier-accent)"}`,
-                                            borderRadius: 6,
-                                            padding: "8px 12px",
-                                            cursor: "pointer",
-                                            textAlign: "left",
-                                            fontSize: 14,
                                             display: "flex",
                                             alignItems: "center",
                                             gap: 8,
+                                            padding: "8px 12px",
+                                            background: wasSavedNow
+                                                ? "var(--green-360)"
+                                                : selectedFolderId === f.id
+                                                    ? (f.color ?? "var(--brand-experiment)")
+                                                    : "var(--background-secondary)",
+                                            border: "1px solid var(--background-modifier-accent)",
+                                            borderRadius: 6,
+                                            cursor: alreadySaved ? "not-allowed" : "pointer",
+                                            opacity: alreadySaved ? 0.5 : 1,
+                                            textAlign: "left",
                                         }}
                                     >
-                                        <span>{f.name}</span>
-                                        <span style={{ opacity: 0.7, fontSize: 12 }}>
-                                            ({f.gifs.length} GIFs)
+                                        <span style={{ flex: 1, fontWeight: 500, color: (selectedFolderId === f.id && !wasSavedNow) ? "#fff" : "var(--text-normal)" }}>{f.name}</span>
+                                        <span style={{ fontSize: 12, color: (selectedFolderId === f.id && !wasSavedNow) ? "rgba(255,255,255,0.75)" : "var(--text-muted)" }}>
+                                            {alreadySaved ? "Already saved" : `${f.gifs.length} GIFs`}
                                         </span>
                                     </button>
                                 );
                             })}
                         </div>
                     )}
-
-                    {saved && (
-                        <Text variant="text-sm/normal" style={{ color: "var(--status-positive)", textAlign: "center" }}>
-                            ✅ Saved!
-                        </Text>
-                    )}
                 </div>
             </ModalContent>
-
             <ModalFooter>
                 <div style={{ display: "flex", gap: 8, width: "100%", justifyContent: "flex-end" }}>
                     <Button
-                        look={Button.Looks.LINK}
-                        color={Button.Colors.PRIMARY}
-                        onClick={() => modalProps.onClose()}
+                        onClick={modalProps.onClose}
+                        color={Button.Colors.TRANSPARENT}
+                        size={Button.Sizes.SMALL}
                     >
                         Cancel
                     </Button>
                     <Button
-                        color={Button.Colors.BRAND}
                         onClick={handleNewFolder}
+                        color={Button.Colors.BRAND}
+                        size={Button.Sizes.SMALL}
                     >
                         New Folder
                     </Button>
                     <Button
+                        onClick={() => selectedFolderId && saveToFolder(selectedFolderId)}
                         color={Button.Colors.BRAND}
-                        disabled={!selectedFolderId || saving || saved}
-                        onClick={handleSave}
+                        size={Button.Sizes.SMALL}
+                        disabled={!selectedFolderId || saving || !!savedTo}
                     >
-                        {saving ? "Saving…" : saved ? "Saved!" : "Save"}
+                        {savedTo ? "Saved!" : saving ? "Saving…" : "Save"}
                     </Button>
                 </div>
             </ModalFooter>
