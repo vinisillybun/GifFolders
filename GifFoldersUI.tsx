@@ -364,14 +364,82 @@ function ManageFoldersModal({ folders, onClose, onReload }: {
     );
 }
 
+// ─── Vencord modal wrappers ───────────────────────────────────────────────────
+// The GIF picker lives inside a clipped/transformed container, so position:fixed
+// overlays rendered inside it break (transparent, wrong position). We use
+// Vencord's openModal instead, which renders into a proper top-level portal.
+
+function openGifBrowser(folder: GifFolder, onReload: () => void) {
+    openModal(props => (
+        <div
+            {...props}
+            style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                position: "fixed", inset: 0, zIndex: props.zIndex ?? 1000,
+                background: "rgba(0,0,0,0.6)",
+            }}
+            onClick={() => props.onClose()}
+        >
+            <ErrorBoundary>
+                <GifBrowserModal
+                    folder={folder}
+                    onClose={props.onClose}
+                    onReload={onReload}
+                />
+            </ErrorBoundary>
+        </div>
+    ));
+}
+
+function openColorPicker(folder: GifFolder, onSaved: () => void) {
+    openModal(props => (
+        <div
+            {...props}
+            style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                position: "fixed", inset: 0, zIndex: props.zIndex ?? 1000,
+                background: "rgba(0,0,0,0.6)",
+            }}
+            onClick={() => props.onClose()}
+        >
+            <ErrorBoundary>
+                <ColorPickerModal
+                    folder={folder}
+                    onClose={props.onClose}
+                    onSaved={onSaved}
+                />
+            </ErrorBoundary>
+        </div>
+    ));
+}
+
+function openManageFolders(folders: GifFolder[], onReload: () => void) {
+    openModal(props => (
+        <div
+            {...props}
+            style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                position: "fixed", inset: 0, zIndex: props.zIndex ?? 1000,
+                background: "rgba(0,0,0,0.6)",
+            }}
+            onClick={() => props.onClose()}
+        >
+            <ErrorBoundary>
+                <ManageFoldersModal
+                    folders={folders}
+                    onClose={props.onClose}
+                    onReload={onReload}
+                />
+            </ErrorBoundary>
+        </div>
+    ));
+}
+
 // ─── Main export: FolderTiles (pinned above Discord's favorites grid) ─────────
 
 export function FolderTiles({ onSelectItem }: { onSelectItem?: (type: any, name: string) => void; }) {
     const [folders, setFolders] = useState<GifFolder[]>([]);
     const [loading, setLoading] = useState(true);
-    const [browserFolder, setBrowserFolder] = useState<GifFolder | null>(null);
-    const [colorFolder, setColorFolder] = useState<GifFolder | null>(null);
-    const [showManage, setShowManage] = useState(false);
 
     const reload = useCallback(async () => {
         const data = await loadFolders();
@@ -384,112 +452,49 @@ export function FolderTiles({ onSelectItem }: { onSelectItem?: (type: any, name:
     if (loading || folders.length === 0) return null;
 
     return (
-        <>
-            {/* Folder tiles grid — same 2-column masonry-ish layout as Discord's categories */}
-            <div style={{ width: "100%", marginBottom: 8 }}>
-                {/* Section header */}
-                <div style={{ display: "flex", alignItems: "center", marginBottom: 6, gap: 6 }}>
-                    <Text variant="eyebrow" style={{ color: "var(--text-muted)", flex: 1, textTransform: "uppercase", fontSize: 11, letterSpacing: "0.06em" }}>
-                        My Folders
-                    </Text>
-                    <button
-                        onClick={() => setShowManage(true)}
-                        style={{ ...iconBtnStyle, fontSize: 13 }}
-                        title="Manage folders"
-                    >⚙️</button>
-                </div>
-
-                {/* 2-column grid matching Discord's category tile layout */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
-                    {folders.map(f => (
-                        <FolderTile
-                            key={f.id}
-                            folder={f}
-                            onClick={() => setBrowserFolder(f)}
-                            onReload={reload}
-                        />
-                    ))}
-                    {/* "New folder" tile to keep things accessible */}
-                    <button
-                        onClick={() => openModal(props => (
-                            <CreateFolderModal modalProps={props} onCreated={async () => reload()} onCancel={() => {}} />
-                        ))}
-                        style={{
-                            height: 110, borderRadius: 8, border: "2px dashed var(--background-modifier-accent)",
-                            background: "var(--background-secondary)", cursor: "pointer",
-                            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                            gap: 4, color: "var(--text-muted)", fontSize: 13,
-                        }}
-                    >
-                        <span style={{ fontSize: 22 }}>+</span>
-                        New folder
-                    </button>
-                </div>
-
-                {/* Divider before Discord's own Favorites tile */}
-                <div style={{ height: 1, background: "var(--background-modifier-accent)", margin: "4px 0 10px" }} />
+        <div style={{ width: "100%", marginBottom: 8 }}>
+            {/* Section header */}
+            <div style={{ display: "flex", alignItems: "center", marginBottom: 6, gap: 6 }}>
+                <Text variant="eyebrow" style={{ color: "var(--text-muted)", flex: 1, textTransform: "uppercase", fontSize: 11, letterSpacing: "0.06em" }}>
+                    My Folders
+                </Text>
+                <button
+                    onClick={() => openManageFolders(folders, reload)}
+                    style={{ ...iconBtnStyle, fontSize: 13 }}
+                    title="Manage folders"
+                >⚙️</button>
             </div>
 
-            {/* GIF browser modal */}
-            {browserFolder && (
-                <div
-                    onClick={() => setBrowserFolder(null)}
+            {/* 2-column grid matching Discord's category tile layout */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+                {folders.map(f => (
+                    <FolderTile
+                        key={f.id}
+                        folder={f}
+                        onClick={() => openGifBrowser(f, reload)}
+                        onReload={reload}
+                    />
+                ))}
+                {/* "New folder" tile */}
+                <button
+                    onClick={() => openModal(props => (
+                        <CreateFolderModal modalProps={props} onCreated={async () => reload()} onCancel={() => {}} />
+                    ))}
                     style={{
-                        position: "fixed", inset: 0, zIndex: 1000,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        background: "rgba(0,0,0,0.6)",
+                        height: 110, borderRadius: 8, border: "2px dashed var(--background-modifier-accent)",
+                        background: "var(--background-secondary)", cursor: "pointer",
+                        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                        gap: 4, color: "var(--text-muted)", fontSize: 13,
                     }}
                 >
-                    <ErrorBoundary>
-                        <GifBrowserModal
-                            folder={browserFolder}
-                            onClose={() => setBrowserFolder(null)}
-                            onReload={reload}
-                        />
-                    </ErrorBoundary>
-                </div>
-            )}
+                    <span style={{ fontSize: 22 }}>+</span>
+                    New folder
+                </button>
+            </div>
 
-            {/* Color picker modal */}
-            {colorFolder && (
-                <div
-                    onClick={() => setColorFolder(null)}
-                    style={{
-                        position: "fixed", inset: 0, zIndex: 1000,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        background: "rgba(0,0,0,0.6)",
-                    }}
-                >
-                    <ErrorBoundary>
-                        <ColorPickerModal
-                            folder={colorFolder}
-                            onClose={() => setColorFolder(null)}
-                            onSaved={reload}
-                        />
-                    </ErrorBoundary>
-                </div>
-            )}
-
-            {/* Manage folders modal */}
-            {showManage && (
-                <div
-                    onClick={() => setShowManage(false)}
-                    style={{
-                        position: "fixed", inset: 0, zIndex: 1000,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        background: "rgba(0,0,0,0.6)",
-                    }}
-                >
-                    <ErrorBoundary>
-                        <ManageFoldersModal
-                            folders={folders}
-                            onClose={() => setShowManage(false)}
-                            onReload={reload}
-                        />
-                    </ErrorBoundary>
-                </div>
-            )}
-        </>
+            {/* Divider before Discord's own Favorites tile */}
+            <div style={{ height: 1, background: "var(--background-modifier-accent)", margin: "4px 0 10px" }} />
+        </div>
     );
 }
 
