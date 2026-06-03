@@ -1,114 +1,110 @@
+/*
+ * GifFolders – CreateFolderModal.tsx
+ */
+
 import { ModalCloseButton, ModalContent, ModalFooter, ModalHeader, ModalRoot } from "@utils/modal";
-import { Button, Forms, React, Text, TextInput, useState } from "@webpack/common";
+import { Button, React, Text, TextInput, useState } from "@webpack/common";
+
 import { GifFolder, loadFolders, saveFolders } from "..";
 
-interface CreateFolderModalProps {
+function generateId(): string {
+    return `folder_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+}
+
+const DEFAULT_COLORS = [
+    "#5865F2", "#57F287", "#FEE75C", "#EB459E",
+    "#ED4245", "#9B59B6", "#1ABC9C", "#E67E22",
+];
+
+interface Props {
     modalProps: any;
-    onCreated: (id: string) => void;
+    onCreated: (folderId: string) => void;
     onCancel: () => void;
 }
 
-export function CreateFolderModal({ modalProps, onCreated, onCancel }: CreateFolderModalProps) {
+export function CreateFolderModal({ modalProps, onCreated, onCancel }: Props) {
     const [name, setName] = useState("");
-    const [color, setColor] = useState("#5865F2");
-    const [creating, setCreating] = useState(false);
-    const [error, setError] = useState("");
+    const [color, setColor] = useState(DEFAULT_COLORS[0]);
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const handleCreate = async () => {
         const trimmed = name.trim();
-        if (!trimmed) {
-            setError("Please enter a folder name.");
+        if (!trimmed) { setError("Folder name is required."); return; }
+        if (trimmed.length > 50) { setError("Name too long (max 50 chars)."); return; }
+
+        setSaving(true);
+        const folders = await loadFolders();
+
+        if (Object.values(folders).some(f => f.name.toLowerCase() === trimmed.toLowerCase())) {
+            setError("A folder with that name already exists.");
+            setSaving(false);
             return;
         }
-        setCreating(true);
-        try {
-            const folders = await loadFolders();
-            const id = `folder_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-            const newFolder: GifFolder = {
-                id,
-                name: trimmed,
-                color,
-                gifs: [],
-                createdAt: Date.now(),
-            };
-            folders[id] = newFolder;
-            await saveFolders(folders);
-            modalProps.onClose();
-            onCreated(id);
-        } finally {
-            setCreating(false);
-        }
+
+        const id = generateId();
+        const newFolder: GifFolder = { id, name: trimmed, color, gifs: [], createdAt: Date.now() };
+        folders[id] = newFolder;
+        await saveFolders(folders);
+        onCreated(id);
+        modalProps.onClose();
     };
 
     return (
-        <ModalRoot {...modalProps}>
+        <ModalRoot {...modalProps} size="small">
             <ModalHeader>
-                <Text variant="heading-lg/semibold" style={{ flex: 1 }}>
-                    Create GIF Folder
-                </Text>
-                <ModalCloseButton onClick={modalProps.onClose} />
+                <Text variant="heading-md/bold">Create GIF Folder</Text>
+                <ModalCloseButton />
             </ModalHeader>
-
             <ModalContent>
-                <div style={{ padding: "16px 0", display: "flex", flexDirection: "column", gap: 12 }}>
-                    <Forms.FormSection>
-                        <Forms.FormTitle>Folder Name</Forms.FormTitle>
+                <div style={{ padding: "12px 0", display: "flex", flexDirection: "column", gap: 12 }}>
+                    <div>
+                        <Text variant="text-sm/semibold" style={{ marginBottom: 6 }}>Color</Text>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                            {DEFAULT_COLORS.map(c => (
+                                <button
+                                    key={c}
+                                    onClick={() => setColor(c)}
+                                    style={{
+                                        width: 32, height: 32, borderRadius: "50%",
+                                        background: c, border: "none", cursor: "pointer",
+                                        boxShadow: color === c ? `0 0 0 3px white, 0 0 0 5px ${c}` : "none",
+                                        transition: "box-shadow 0.15s",
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                    <div>
+                        <Text variant="text-sm/semibold" style={{ marginBottom: 6 }}>Name</Text>
                         <TextInput
-                            placeholder="My Folder"
+                            placeholder="e.g. Reaction GIFs, Cat Memes…"
                             value={name}
-                            onChange={setName}
+                            onChange={v => { setName(v); setError(null); }}
+                            maxLength={50}
                             autoFocus
                         />
-                    </Forms.FormSection>
-
-                    <Forms.FormSection>
-                        <Forms.FormTitle>Folder Color</Forms.FormTitle>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <input
-                                type="color"
-                                value={color}
-                                onChange={e => setColor(e.target.value)}
-                                style={{
-                                    width: 36,
-                                    height: 36,
-                                    border: "none",
-                                    borderRadius: 4,
-                                    cursor: "pointer",
-                                    background: "none",
-                                    padding: 0,
-                                }}
-                            />
-                            <Text variant="text-sm/normal" style={{ color: "var(--text-muted)" }}>
-                                {color}
+                        {error && (
+                            <Text variant="text-xs/normal" style={{ color: "var(--text-danger)", marginTop: 4 }}>
+                                {error}
                             </Text>
-                        </div>
-                    </Forms.FormSection>
-
-                    {error && (
-                        <Text variant="text-sm/normal" style={{ color: "var(--status-danger)" }}>
-                            {error}
+                        )}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 6, background: color }} />
+                        <Text variant="text-sm/semibold" style={{ color: "var(--header-primary)" }}>
+                            {name || "My Folder"}
                         </Text>
-                    )}
+                    </div>
                 </div>
             </ModalContent>
-
             <ModalFooter>
-                <div style={{ display: "flex", gap: 8, width: "100%", justifyContent: "flex-end" }}>
-                    <Button
-                        look={Button.Looks.LINK}
-                        color={Button.Colors.PRIMARY}
-                        onClick={() => { modalProps.onClose(); onCancel(); }}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        color={Button.Colors.BRAND}
-                        disabled={creating}
-                        onClick={handleCreate}
-                    >
-                        {creating ? "Creating…" : "Create"}
-                    </Button>
-                </div>
+                <Button onClick={handleCreate} color={Button.Colors.BRAND} disabled={saving}>
+                    {saving ? "Creating…" : "Create Folder"}
+                </Button>
+                <Button onClick={() => { onCancel(); modalProps.onClose(); }} color={Button.Colors.TRANSPARENT} style={{ marginLeft: 8 }}>
+                    Cancel
+                </Button>
             </ModalFooter>
         </ModalRoot>
     );
