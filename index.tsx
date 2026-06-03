@@ -1,11 +1,19 @@
+/*
+ * Vencord, a modification for Discord's desktop app
+ * Copyright (c) 2024 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import { addContextMenuPatch, findGroupChildrenByChildId, NavContextMenuPatchCallback, removeContextMenuPatch } from "@api/ContextMenu";
 import { DataStore } from "@api/index";
 import ErrorBoundary from "@components/ErrorBoundary";
 import definePlugin from "@utils/types";
 import { Menu, React } from "@webpack/common";
-import { openModal } from "@utils/modal";
+
 import { FolderManager } from "./FolderManager";
-import { GifFoldersUI } from "./GifFoldersUI";
+import { FolderTiles } from "./GifFoldersUI";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface GifItem {
     url: string;
@@ -25,6 +33,8 @@ export interface GifFolder {
 
 export type FolderStore = Record<string, GifFolder>;
 
+// ─── DataStore ────────────────────────────────────────────────────────────────
+
 const STORE_KEY = "GifFolders_v1";
 
 export async function loadFolders(): Promise<FolderStore> {
@@ -34,6 +44,8 @@ export async function loadFolders(): Promise<FolderStore> {
 export async function saveFolders(folders: FolderStore): Promise<void> {
     await DataStore.set(STORE_KEY, folders);
 }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function isGifUrl(url: string): boolean {
     if (!url) return false;
@@ -58,7 +70,7 @@ function getGifUrlFromMessage(message: any): string | null {
         for (const att of message.attachments) {
             const ct: string = att.content_type ?? "";
             if (ct.includes("mp4") || ct.includes("video")) continue;
-            if ((ct.includes("gif") || ct.includes("webp")) || isGifUrl(att.url)) return att.url;
+            if (ct.includes("gif") || ct.includes("webp") || isGifUrl(att.url)) return att.url;
         }
     }
     if (message?.content && isGifUrl(message.content.trim())) {
@@ -67,12 +79,13 @@ function getGifUrlFromMessage(message: any): string | null {
     return null;
 }
 
+// ─── Message context menu patch ───────────────────────────────────────────────
+
 const messageContextMenuPatch: NavContextMenuPatchCallback = (children, props) => {
     const gifUrl = getGifUrlFromMessage(props?.message);
     if (!gifUrl) return;
 
     const saveImageGroup = findGroupChildrenByChildId("save-image", children);
-
     const menuItem = (
         <Menu.MenuItem
             id="gif-folders-save-chat"
@@ -87,18 +100,22 @@ const messageContextMenuPatch: NavContextMenuPatchCallback = (children, props) =
     );
 
     if (saveImageGroup) {
-        const saveImageIndex = saveImageGroup.findIndex((c: any) => c?.props?.id === "save-image");
-        saveImageGroup.splice(saveImageIndex + 1, 0, menuItem);
+        const idx = saveImageGroup.findIndex((c: any) => c?.props?.id === "save-image");
+        saveImageGroup.splice(idx + 1, 0, menuItem);
     } else {
         children.push(<Menu.MenuSeparator />, menuItem);
     }
 };
 
+// ─── Plugin ───────────────────────────────────────────────────────────────────
+
+
+// Right-click a GIF inside the GIF picker
 const gifPickerContextMenuPatch: NavContextMenuPatchCallback = (children, props) => {
     const gif = props?.gif;
     if (!gif) return;
     const url: string = gif.url ?? gif.src ?? "";
-    if (!url) return;
+    if (!url || /\.mp4($|\?)/i.test(url)) return;
 
     children.push(
         <Menu.MenuSeparator />,
@@ -122,12 +139,22 @@ export default definePlugin({
 
     patches: [
         {
-            find: "getFavoriteGIFs",
+            // Module 622142, class z.
+            // renderContent() returns either the front page (H) or the gif grid (L.Ay).
+            // We patch the div wrapper that holds the content (className:q.Qs) to call
+            // our method instead of renderContent() directly, so we can prepend folder tiles.
+            //
+            // From source:
+            //   (0,s.jsx)("div",{className:q.Qs,children:this.renderContent()})
+            //
+            // We change renderContent to renderContentWithFolders which calls the original
+            // and wraps it when in FAVORITES mode.
+            find: "renderHeaderContent()",
             replacement: {
-                match: /(?<=children:\s*\[)(?=.+?renderFavorite)/s,
-                replace: "$self.renderFolders(),"
-            }
-        }
+                match: /(\(0,\i\.jsx\)\("div",\{className:\i\.\i,children:)(this\.renderContent\(\))/,
+                replace: "$1$self.wrapContent($2,this)",
+            },
+        },
     ],
 
     start() {
@@ -140,30 +167,18 @@ export default definePlugin({
         removeContextMenuPatch("gif-picker-gif-context-menu", gifPickerContextMenuPatch);
     },
 
-    renderFavoritesTile() {
+    wrapContent(content: React.ReactNode, instance: any) {
+        // Only inject when viewing favorites (resultType === "Favorites")
+        const isFavorites = instance?.state?.resultType === "Favorites";
+        if (!isFavorites) return content;
+
         return (
-            <div
-                style={{
-                    background: "var(--background-floating)",
-                    borderRadius: 8,
-                    padding: "12px 16px",
-                    display: "flex",
-                    flexDirection: "column",
-                    height: "auto",
-                    position: "relative",
-                    overflow: "visible",
-                    marginBottom: 16,
-                    borderBottom: "2px solid var(--background-modifier-accent)",
-                }}
-            >
-                <ErrorBoundary>
-                    <GifFoldersUI />
+            <>
+                <ErrorBoundary noop>
+                    <FolderTiles />
                 </ErrorBoundary>
-            </div>
+                {content}
+            </>
         );
     },
-
-    renderFolders() {
-        return <ErrorBoundary><GifFoldersUI /></ErrorBoundary>;
-    }
 });
