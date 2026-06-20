@@ -50,11 +50,19 @@ export async function saveFolders(folders: FolderStore): Promise<void> {
 function isGifUrl(url: string): boolean {
     if (!url) return false;
     if (/\.mp4($|\?)/i.test(url)) return false;
+    // Direct image extensions are always valid.
+    if (/\.(gif|webp|jpg|jpeg|png)($|\?)/i.test(url)) return true;
+    // Only match known *direct media* CDN hosts — not tenor.com/giphy.com page
+    // domains, which serve an HTML page and can never load in an <img> tag.
     return (
-        /\.(gif|webp|jpg|jpeg|png)($|\?)/i.test(url) ||
-        url.includes("tenor.com") ||
-        url.includes("giphy.com") ||
-        url.includes("media.discordapp") ||
+        url.includes("media.tenor.com") ||
+        url.includes("c.tenor.com") ||
+        url.includes("media.giphy.com") ||
+        url.includes("media0.giphy.com") ||
+        url.includes("media1.giphy.com") ||
+        url.includes("media2.giphy.com") ||
+        url.includes("media3.giphy.com") ||
+        url.includes("media.discordapp.net") ||
         url.includes("cdn.discordapp.com")
     );
 }
@@ -62,7 +70,10 @@ function isGifUrl(url: string): boolean {
 function getGifUrlFromMessage(message: any): string | null {
     if (message?.embeds?.length > 0) {
         for (const embed of message.embeds) {
-            const url = embed.url ?? embed.image?.url ?? embed.thumbnail?.url;
+            // Prefer the actual renderable media (embed.image/embed.thumbnail) over
+            // embed.url, which is the source *page* link (e.g. tenor.com/view/...)
+            // and is never a loadable image.
+            const url = embed.image?.url ?? embed.thumbnail?.url ?? embed.url;
             if (url && isGifUrl(url)) return url;
         }
     }
